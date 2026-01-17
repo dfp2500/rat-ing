@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function: Usuario autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function: Email en allowlist
+    function isAllowedUser() {
+      return isAuthenticated() && 
+             request.auth.token.email in [
+               'dfp2500@gmail.com',
+               'zahiragua@gmail.com'
+             ];
+    }
+    
+    // Colección users
+    match /users/{userId} {
+      allow read: if isAllowedUser();
+      allow write: if isAllowedUser() && request.auth.uid == userId;
+    }
+    
+    // Colección movies
+    match /movies/{movieId} {
+      allow read: if isAllowedUser();
+      allow create: if isAllowedUser();
+      allow update: if isAllowedUser();
+      allow delete: if false; // No permitir borrado por ahora
+    }
+    
+    // Colección stats
+    match /stats/{statId} {
+      allow read: if isAllowedUser();
+      allow write: if false; // Solo Cloud Functions (futuro)
+    }
+  }
+}
