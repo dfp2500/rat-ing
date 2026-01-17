@@ -1,8 +1,84 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { tmdbClient } from '@/lib/tmdb/client';
 
+// Simple in-memory cache (para evitar llamadas repetidas)
+const searchCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
+// Rate limiting simple (por IP)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_MAX = 30; // 30 requests
+const RATE_LIMIT_WINDOW = 60 * 1000; // por minuto
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(ip, {
+      count: 1,
+      resetTime: now + RATE_LIMIT_WINDOW,
+    });
+    return true;
+  }
+
+  if (record.count >= RATE_LIMIT_MAX) {
+    return false;
+  }
+
+  record.count++;
+  return true;
+}
+
+function getCachedData(cacheKey: string) {
+  const cached = searchCache.get(cacheKey);
+  if (!cached) return null;
+
+  const now = Date.now();
+  if (now - cached.timestamp > CACHE_DURATION) {
+    searchCache.delete(cacheKey);
+    return null;
+  }
+
+  return cached.data;
+}
+
+function setCachedData(cacheKey: string, data: any) {
+  searchCache.set(cacheKey, {
+    data,
+    timestamp: Date.now(),
+  });
+
+  // Limpieza automática del cache (mantener máximo 100 entradas)
+  if (searchCache.size > 100) {
+    const firstKey = searchCache.keys().next().value;
+    if (firstKey) searchCache.delete(firstKey);
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting
+    // Obtenemos la IP asegurando que siempre sea un string
+    const forwarded = request.headers.get('x-forwarded-for');
+    const realIp = request.headers.get('x-real-ip');
+
+    // Usamos el operador ?? (nullish coalescing) para asegurar un string
+    const ip = (forwarded ? forwarded.split(',')[0] : realIp) ?? '127.0.0.1';
+    
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': '60',
+          }
+        }
+      );
+    }
+
+    // Validar parámetros
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('query');
     const page = searchParams.get('page') || '1';
@@ -14,11 +90,56 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const results = await tmdbClient.searchMovies(query, parseInt(page));
+    if (query.trim().length < 2) {
+      return NextResponse.json(
+        { error: 'Query must be at least 2 characters' },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json(results);
+    const pageNum = parseInt(page);
+    if (isNaN(pageNum) || pageNum < 1 || pageNum > 500) {
+      return NextResponse.json(
+        { error: 'Invalid page number' },
+        { status: 400 }
+      );
+    }
+
+    // Cache key
+    const cacheKey = `search:${query.toLowerCase()}:${page}`;
+    const cachedData = getCachedData(cacheKey);
+    
+    if (cachedData) {
+      return NextResponse.json(cachedData, {
+        headers: {
+          'X-Cache': 'HIT',
+        },
+      });
+    }
+
+    // Llamada a TMDB
+    const results = await tmdbClient.searchMovies(query, pageNum);
+
+    // Guardar en cache
+    setCachedData(cacheKey, results);
+
+    return NextResponse.json(results, {
+      headers: {
+        'X-Cache': 'MISS',
+        'Cache-Control': 'public, s-maxage=300', // 5 minutos
+      },
+    });
   } catch (error) {
     console.error('Error searching movies:', error);
+    
+    // Distinguir entre errores de TMDB y errores internos
+    if (error instanceof Error && error.message.includes('TMDB API Error')) {
+      return NextResponse.json(
+        { error: 'External API error. Please try again.' },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Failed to search movies' },
       { status: 500 }
