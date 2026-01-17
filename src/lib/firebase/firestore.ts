@@ -11,15 +11,47 @@ import {
   orderBy,
   limit,
   QueryConstraint,
+  CollectionReference,
+  DocumentReference,
 } from 'firebase/firestore';
 import { db } from './config';
+import { userConverter, movieConverter, statsConverter } from './converters';
+import { User } from '@/types/user';
+import { Movie } from '@/types/movie';
+import { GlobalStats } from '@/types/stats';
 
-// Collection references
+// Collection names
 export const collections = {
   users: 'users',
   movies: 'movies',
   stats: 'stats',
 } as const;
+
+// Typed collection references
+export function getUsersCollection(): CollectionReference<User> {
+  return collection(db, collections.users).withConverter(userConverter);
+}
+
+export function getMoviesCollection(): CollectionReference<Movie> {
+  return collection(db, collections.movies).withConverter(movieConverter);
+}
+
+export function getStatsCollection(): CollectionReference<GlobalStats> {
+  return collection(db, collections.stats).withConverter(statsConverter);
+}
+
+// Typed document references
+export function getUserDoc(userId: string): DocumentReference<User> {
+  return doc(db, collections.users, userId).withConverter(userConverter);
+}
+
+export function getMovieDoc(movieId: string): DocumentReference<Movie> {
+  return doc(db, collections.movies, movieId).withConverter(movieConverter);
+}
+
+export function getStatsDoc(statId: string = 'global'): DocumentReference<GlobalStats> {
+  return doc(db, collections.stats, statId).withConverter(statsConverter);
+}
 
 // Helper functions
 export async function getDocument<T extends object>(
