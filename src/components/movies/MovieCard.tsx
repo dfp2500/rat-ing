@@ -1,9 +1,11 @@
 'use client';
 
+import { memo } from 'react';
 import { Movie } from '@/types/movie';
 import { UserRole } from '@/types/user';
 import { getTMDBImageUrl } from '@/types/tmdb';
 import { Card } from '@/components/ui/card';
+import { OptimizedImage } from '@/components/shared/OptimizedImage';
 import { StarIcon, CalendarIcon, ClockIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -15,17 +17,17 @@ interface MovieCardProps {
   onClick?: () => void;
 }
 
-export function MovieCard({ movie, currentUserRole, onClick }: MovieCardProps) {
+export const MovieCard = memo(function MovieCard({ 
+  movie, 
+  currentUserRole, 
+  onClick 
+}: MovieCardProps) {
   const posterUrl = getTMDBImageUrl(movie.posterPath ?? null, 'w342');
   const year = movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : '';
   
   const hasUserRating = currentUserRole 
     ? movie.ratings[currentUserRole] !== undefined 
     : false;
-  
-  const userRating = currentUserRole && hasUserRating
-    ? movie.ratings[currentUserRole]
-    : undefined;
 
   return (
     <Card
@@ -34,28 +36,25 @@ export function MovieCard({ movie, currentUserRole, onClick }: MovieCardProps) {
     >
       {/* Poster */}
       <div className="relative aspect-[2/3] bg-muted overflow-hidden">
-        {posterUrl ? (
-          <img
-            src={posterUrl}
-            alt={movie.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <CalendarIcon className="h-16 w-16 text-muted-foreground opacity-50" />
-          </div>
-        )}
+        <OptimizedImage
+          src={posterUrl}
+          alt={movie.title}
+          className="w-full h-full"
+          fallback={
+            <div className="w-full h-full flex items-center justify-center">
+              <CalendarIcon className="h-16 w-16 text-muted-foreground opacity-50" />
+            </div>
+          }
+        />
 
         {/* Badges overlay */}
         <div className="absolute top-2 right-2 flex flex-col gap-2">
-          {/* Badge: Pending rating */}
           {!hasUserRating && (
             <div className="px-2 py-1 rounded-md bg-amber-500/90 text-white text-xs font-medium backdrop-blur-sm">
               Pendiente
             </div>
           )}
 
-          {/* Badge: Average score */}
           {movie.averageScore && (
             <div className="px-2 py-1 rounded-md bg-black/70 text-white text-xs font-medium backdrop-blur-sm flex items-center gap-1">
               <StarIcon className="h-3 w-3 fill-amber-500 text-amber-500" />
@@ -92,14 +91,11 @@ export function MovieCard({ movie, currentUserRole, onClick }: MovieCardProps) {
 
         {/* Ratings */}
         <div className="flex gap-2">
-          {/* User 1 Rating */}
           <RatingBadge
             label="U1"
             score={movie.ratings.user_1?.score}
             isCurrentUser={currentUserRole === 'user_1'}
           />
-
-          {/* User 2 Rating */}
           <RatingBadge
             label="U2"
             score={movie.ratings.user_2?.score}
@@ -109,9 +105,9 @@ export function MovieCard({ movie, currentUserRole, onClick }: MovieCardProps) {
       </div>
     </Card>
   );
-}
+});
 
-function RatingBadge({
+const RatingBadge = memo(function RatingBadge({
   label,
   score,
   isCurrentUser,
@@ -142,4 +138,4 @@ function RatingBadge({
       )}
     </div>
   );
-}
+});
