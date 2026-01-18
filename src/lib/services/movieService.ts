@@ -141,12 +141,20 @@ export class MovieService {
 
     const movie = snapshot.data();
 
-    // Actualizar rating
-    const newRating = {
+    // Crear el nuevo rating (sin undefined)
+    const newRating: {
+      score: number;
+      comment?: string;
+      ratedAt: Timestamp;
+    } = {
       score: data.score,
-      comment: data.comment,
       ratedAt: Timestamp.now(),
     };
+
+    // Solo añadir comment si existe y no está vacío
+    if (data.comment && data.comment.trim().length > 0) {
+      newRating.comment = data.comment.trim();
+    }
 
     const updatedRatings = {
       ...movie.ratings,
@@ -157,10 +165,10 @@ export class MovieService {
     const averageScore = calculateAverageScore(updatedRatings);
     const bothRated = checkBothRated(updatedRatings);
 
-    // Actualizar documento
+    // Actualizar documento usando dot notation para evitar sobrescribir
     await updateDoc(movieDoc, {
-      ratings: updatedRatings,
-      averageScore,
+      [`ratings.${data.userRole}`]: newRating,
+      averageScore: averageScore ?? null,
       bothRated,
     });
 
