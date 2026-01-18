@@ -5,7 +5,8 @@ export type UserRole = 'user_1' | 'user_2';
 export interface User {
   id: string; // Firebase Auth UID
   email: string;
-  displayName: string;
+  displayName: string; // Ahora es editable
+  customDisplayName?: string; // Nombre personalizado por el usuario
   photoURL?: string;
   role: UserRole;
   createdAt: Timestamp;
@@ -32,4 +33,20 @@ export function getUserRoleFromEmail(email: string): UserRole {
   
   // Fallback (no debería pasar si la allowlist funciona)
   return 'user_1';
+}
+
+// Helper para obtener el nombre para mostrar
+export function getUserDisplayName(user: User): string {
+  return user.customDisplayName || user.displayName || 'Usuario';
+}
+
+// Helper para obtener las iniciales
+export function getUserInitials(user: User): string {
+  const name = getUserDisplayName(user);
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 }
