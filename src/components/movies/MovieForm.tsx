@@ -28,7 +28,7 @@ export function MovieForm({ movie, onCancel }: MovieFormProps) {
   const [watchedDate, setWatchedDate] = useState(new Date());
   const [rateNow, setRateNow] = useState(false);
   const [rating, setRating] = useState(7);
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState<string>("");
 
   const posterUrl = getTMDBImageUrl(movie.poster_path, 'w500');
   const year = movie.release_date ? new Date(movie.release_date).getFullYear() : '';
@@ -51,12 +51,12 @@ export function MovieForm({ movie, onCancel }: MovieFormProps) {
         addedBy: currentUser.id,
         watchedDate,
         initialRating: rateNow
-          ? {
-              userRole: currentUser.role,
-              score: rating,
-              comment: comment || undefined,
-            }
-          : undefined,
+        ? {
+            userRole: currentUser.role,
+            score: rating,
+            comment: comment.trim() || "", // Cambiado a string vacío
+          }
+        : undefined,
       });
 
       toast.success(

@@ -31,13 +31,21 @@ export class MovieService {
 
     const ratings: Movie['ratings'] = {};
     
-    // Si hay rating inicial, agregarlo
     if (data.initialRating) {
-      ratings[data.initialRating.userRole] = {
+      // Creamos el objeto de rating base
+      const ratingObj: any = {
         score: data.initialRating.score,
-        comment: data.initialRating.comment,
         ratedAt: Timestamp.now(),
       };
+
+      // Solo añadimos el comentario si realmente tiene contenido
+      if (data.initialRating.comment && data.initialRating.comment.trim() !== "") {
+        ratingObj.comment = data.initialRating.comment.trim();
+      } else {
+        ratingObj.comment = ""; // O simplemente no lo asignes si prefieres que no exista el campo
+      }
+
+      ratings[data.initialRating.userRole] = ratingObj;
     }
 
     const watchedDateValue = data.watchedDate instanceof Timestamp 

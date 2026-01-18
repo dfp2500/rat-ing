@@ -27,13 +27,13 @@ service cloud.firestore {
       allow read: if isAllowedUser();
       allow create: if isAllowedUser();
       allow update: if isAllowedUser();
-      allow delete: if false; // No permitir borrado por ahora
+      allow delete: if false;
     }
     
-    // Colección stats
+    // Colección stats - AÑADIR PERMISOS DE ESCRITURA
     match /stats/{statId} {
       allow read: if isAllowedUser();
-      allow write: if false; // Solo Cloud Functions (futuro)
+      allow write: if isAllowedUser(); // ← CAMBIO AQUÍ
     }
   }
 }

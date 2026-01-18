@@ -88,30 +88,25 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Dashboard</h1>
-              <p className="text-muted-foreground mt-1">
-                Bienvenido, {currentUser?.displayName}
-              </p>
-            </div>
-            <Button onClick={() => router.push('/movies/add')} size="lg">
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Añadir Película
-            </Button>
-          </div>
-        </div>
-      </div>
-
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6">
         {!hasMovies ? (
           <EmptyDashboard onAddMovie={() => router.push('/movies/add')} />
         ) : (
           <div className="space-y-8">
+            {/* Header con título y botón */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold">Dashboard</h1>
+                <p className="text-muted-foreground mt-1">
+                  Resumen de tu actividad
+                </p>
+              </div>
+              <Button onClick={() => router.push('/movies/add')} size="lg">
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Añadir Película
+              </Button>
+            </div>
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <StatsCard
@@ -292,6 +287,36 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Insights */}
+            {stats.total >= 5 && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-lg border bg-card text-center">
+                  <p className="text-2xl font-bold text-primary mb-1">
+                    {stats.total}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Películas juntos
+                  </p>
+                </div>
+                <div className="p-4 rounded-lg border bg-card text-center">
+                  <p className="text-2xl font-bold text-primary mb-1">
+                    {((stats.total - stats.pending) / stats.total * 100).toFixed(0)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Valoración completa
+                  </p>
+                </div>
+                <div className="p-4 rounded-lg border bg-card text-center">
+                  <p className="text-2xl font-bold text-primary mb-1">
+                    {stats.averageScore >= 7 ? '😊' : stats.averageScore >= 5 ? '😐' : '😕'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Estado de ánimo
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

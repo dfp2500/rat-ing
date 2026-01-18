@@ -54,6 +54,9 @@ export function useCreateMovie() {
       // Invalidar queries para refrescar listas
       queryClient.invalidateQueries({ queryKey: ['movies'] });
       
+      // Invalidar stats para recalcular
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      
       // Añadir película nueva al cache
       queryClient.setQueryData(['movies', newMovie.id], newMovie);
     },
@@ -104,6 +107,9 @@ export function useUpdateRating() {
       
       // Invalidar lista de películas
       queryClient.invalidateQueries({ queryKey: ['movies'] });
+      
+      // Invalidar stats para recalcular
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
     },
   });
 }
