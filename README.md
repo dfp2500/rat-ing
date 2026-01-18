@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rat-Ing - Movie Rating Tracker
 
-## Getting Started
+Una aplicación web para que dos usuarios registren y valoren películas vistas juntos.
 
-First, run the development server:
+## 🚀 Deployment
+
+### Deploy en Vercel (Recomendado)
+
+1. **Fork o clona el repositorio**
+
+2. **Configura las variables de entorno:**
+   - Copia `.env.example` a `.env.local`
+   - Rellena todas las variables con tus credenciales
+
+3. **Deploy a Vercel:**
+   ```bash
+   # Opción 1: Desde la terminal
+   vercel
+
+   # Opción 2: Desde vercel.com
+   # Importa tu repositorio y configura las variables de entorno
+   ```
+
+### Variables de Entorno Necesarias
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+TMDB_API_KEY=
+NEXT_PUBLIC_ALLOWED_EMAILS=email1@example.com,email2@example.com
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Deploy de Firebase
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Reglas de Firestore
+firebase deploy --only firestore:rules
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Índices de Firestore
+firebase deploy --only firestore:indexes
+```
 
-## Learn More
+## 📦 Build Local
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+npm run build
+npm run start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🛠️ Stack Tecnológico
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Framework:** Next.js 16 + TypeScript
+- **Styling:** Tailwind CSS + shadcn/ui
+- **Database:** Firebase Firestore
+- **Authentication:** Firebase Auth
+- **API Externa:** TMDB (The Movie Database)
+- **State Management:** TanStack Query (React Query)
+- **Hosting:** Vercel
 
-## Deploy on Vercel
+## ✨ Características
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- ✅ Búsqueda de películas desde TMDB
+- ✅ Sistema de valoraciones individuales (1-10)
+- ✅ Comentarios por usuario
+- ✅ Historial cronológico
+- ✅ Estadísticas y gráficos comparativos
+- ✅ Dark mode
+- ✅ Responsive design
+- ✅ Navegación entre películas
+- ✅ Edición de fechas y valoraciones
+- ✅ Eliminación de películas
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📄 Licencia
+
+Este proyecto es privado y de uso personal.

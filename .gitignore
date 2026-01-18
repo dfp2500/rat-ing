@@ -49,3 +49,4 @@ ui-debug.log
 *.swp
 *.swo
 *~
+.vercel
