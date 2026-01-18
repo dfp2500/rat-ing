@@ -16,6 +16,9 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { UserRole } from '@/types/user';
+import { useDeleteMovie } from '@/lib/hooks/useMovies';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { TrashIcon } from 'lucide-react';
 
 interface MovieDetailPageProps {
   params: Promise<{ id: string }>;
@@ -28,11 +31,13 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
   const { data: allMovies } = useMovies();
   const { data: currentUser } = useCurrentUser();
   const updateRating = useUpdateRating();
+  const deleteMovie = useDeleteMovie();
 
   // Estados de edición
   const [isEditingRating, setIsEditingRating] = useState(false);
   const [editRating, setEditRating] = useState(7);
   const [editComment, setEditComment] = useState('');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Navegación entre películas
   const { prevMovie, nextMovie } = useMemo(() => {
@@ -131,6 +136,17 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
     }
   };
 
+  const handleDelete = async () => {
+    try {
+      await deleteMovie.mutateAsync(movie.id);
+      toast.success('Película eliminada correctamente');
+      router.push('/movies');
+    } catch (error) {
+      console.error('Error deleting movie:', error);
+      toast.error('Error al eliminar la película');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Backdrop Header */}
@@ -158,6 +174,17 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
           </Button>
           
           <div className="flex gap-2">
+            {/* Botón eliminar */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDeleteDialog(true)}
+              className="text-destructive hover:bg-destructive/10"
+            >
+              <TrashIcon className="h-4 w-4 mr-2" />
+              Eliminar
+            </Button>
+            
             {/* Navegación entre películas */}
             <div className="flex gap-1">
               <Button
@@ -426,7 +453,19 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleDelete}
+        title="¿Eliminar película?"
+        description={`¿Estás seguro de que quieres eliminar "${movie.title}"? Esta acción no se puede deshacer y se eliminarán todas las valoraciones.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+        isLoading={deleteMovie.isPending}
+      />
     </div>
+    
   );
 }
 

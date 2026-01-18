@@ -3,6 +3,7 @@ import {
   getDoc,
   getDocs,
   updateDoc,
+  deleteDoc, // Añadir esta importación
   query,
   orderBy,
   limit as firestoreLimit,
@@ -33,17 +34,15 @@ export class MovieService {
     const ratings: Movie['ratings'] = {};
     
     if (data.initialRating) {
-      // Creamos el objeto de rating base
       const ratingObj: any = {
         score: data.initialRating.score,
         ratedAt: Timestamp.now(),
       };
 
-      // Solo añadimos el comentario si realmente tiene contenido
       if (data.initialRating.comment && data.initialRating.comment.trim() !== "") {
         ratingObj.comment = data.initialRating.comment.trim();
       } else {
-        ratingObj.comment = ""; // O simplemente no lo asignes si prefieres que no exista el campo
+        ratingObj.comment = "";
       }
 
       ratings[data.initialRating.userRole] = ratingObj;
@@ -157,7 +156,6 @@ export class MovieService {
 
     const movie = snapshot.data();
 
-    // Crear el nuevo rating (sin undefined)
     const newRating: {
       score: number;
       comment?: string;
@@ -167,7 +165,6 @@ export class MovieService {
       ratedAt: Timestamp.now(),
     };
 
-    // Solo añadir comment si existe y no está vacío
     if (data.comment && data.comment.trim().length > 0) {
       newRating.comment = data.comment.trim();
     }
@@ -177,11 +174,9 @@ export class MovieService {
       [data.userRole]: newRating,
     };
 
-    // Recalcular campos
     const averageScore = calculateAverageScore(updatedRatings);
     const bothRated = checkBothRated(updatedRatings);
 
-    // Actualizar documento usando dot notation para evitar sobrescribir
     await updateDoc(movieDoc, {
       [`ratings.${data.userRole}`]: newRating,
       averageScore: averageScore ?? null,
@@ -194,7 +189,6 @@ export class MovieService {
       console.error("Error actualizando estadísticas globales:", e);
     }
 
-    // Obtener documento actualizado
     const updatedSnapshot = await getDoc(movieDoc);
     return updatedSnapshot.data()!;
   }
@@ -222,6 +216,29 @@ export class MovieService {
 
     const snapshot = await getDocs(q);
     return !snapshot.empty;
+  }
+
+  /**
+   * Eliminar una película
+   */
+  async deleteMovie(movieId: string): Promise<void> {
+    const movieDoc = getMovieDoc(movieId);
+    
+    // Verificar que existe antes de eliminar
+    const snapshot = await getDoc(movieDoc);
+    if (!snapshot.exists()) {
+      throw new Error('Película no encontrada');
+    }
+
+    // Eliminar el documento
+    await deleteDoc(movieDoc);
+
+    // Actualizar estadísticas
+    try {
+      await statsService.updateGlobalStats();
+    } catch (e) {
+      console.error("Error actualizando estadísticas globales:", e);
+    }
   }
 }
 
