@@ -11,6 +11,7 @@ import { MovieSearchDialog } from '@/components/movies/MovieSearchDialog';
 import { TMDBMovie } from '@/types/tmdb';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
+import { PlusIcon } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user: firebaseUser } = useAuth();
@@ -55,9 +56,15 @@ export default function DashboardPage() {
               Bienvenido, {user?.displayName || firebaseUser?.email}
             </p>
           </div>
-          <Button onClick={handleSignOut} variant="outline">
-            Cerrar sesión
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => router.push('/movies/add')} size="lg">
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Añadir Película
+            </Button>
+            <Button onClick={handleSignOut} variant="outline">
+              Cerrar sesión
+            </Button>
+          </div>
         </div>
 
         {/* User Info */}
