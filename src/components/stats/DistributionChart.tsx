@@ -16,7 +16,6 @@ export function DistributionChart({
   user1Label = 'Usuario 1',
   user2Label = 'Usuario 2',
 }: DistributionChartProps) {
-  // Transformar datos para Recharts
   const data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => ({
     score: score.toString(),
     [user1Label]: user1Distribution[score as keyof ScoreDistribution] || 0,
@@ -25,28 +24,53 @@ export function DistributionChart({
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+      {/* Añadimos un margen inferior extra para que la etiqueta "Puntuación" no se corte */}
+      <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 25 }}>
+        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
+        
         <XAxis 
           dataKey="score" 
-          label={{ value: 'Puntuación', position: 'insideBottom', offset: -5 }}
           className="text-xs"
-        />
-        <YAxis 
-          label={{ value: 'Cantidad', angle: -90, position: 'insideLeft' }}
-          className="text-xs"
-        />
-        <Tooltip
-          contentStyle={{
-            backgroundColor: 'hsl(var(--popover))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '0.5rem',
+          tickLine={false}
+          axisLine={false}
+          label={{ 
+            value: 'Puntuación', 
+            position: 'bottom', // Cambiado a 'bottom' para que baje más
+            offset: 10,        // Distancia hacia abajo desde el eje
+            className: "text-xs font-medium fill-muted-foreground" 
           }}
-          labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
         />
-        <Legend />
-        <Bar dataKey={user1Label} fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-        <Bar dataKey={user2Label} fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+        
+        <YAxis 
+          className="text-xs"
+          tickLine={false}
+          axisLine={false}
+          allowDecimals={false} // <--- Fuerza números naturales (0, 1, 2...)
+          label={{ 
+            value: 'Cantidad', 
+            angle: -90, 
+            position: 'insideLeft',
+            style: { textAnchor: 'middle' } 
+          }}
+        />
+
+        {/* He eliminado el Tooltip para que no salgan datos al pasar el ratón */}
+        
+        <Legend verticalAlign="top" height={36}/>
+        
+        <Bar 
+          dataKey={user1Label} 
+          fill="#db6468" 
+          radius={[4, 4, 0, 0]} 
+          barSize={20}
+        />
+        
+        <Bar 
+          dataKey={user2Label} 
+          fill="#d67ea9" 
+          radius={[4, 4, 0, 0]} 
+          barSize={20}
+        />
       </BarChart>
     </ResponsiveContainer>
   );

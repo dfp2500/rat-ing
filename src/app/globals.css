@@ -1,17 +1,17 @@
+/* Importar fuentes: Space Grotesk (moderna/tech) y Inter (lectura) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
-/* Importar fuentes personalizadas */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap');
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Inter', var(--font-geist-sans);
-  --font-heading: 'Poppins', var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Inter', ui-sans-serif, system-ui;
+  --font-heading: 'Space Grotesk', ui-sans-serif, system-ui;
+  --font-mono: 'Space Grotesk', monospace;
+  
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -20,11 +20,13 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -41,6 +43,7 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -51,85 +54,85 @@
 }
 
 :root {
-  /* Paleta personalizada - Cinema Theme */
-  --radius: 0.75rem;
+  /* Bordes suaves y acogedores */
+  --radius: 1rem; 
   
-  /* Colores principales inspirados en cine */
-  --background: oklch(0.98 0.005 264); /* Blanco cremoso */
-  --foreground: oklch(0.15 0.02 264); /* Negro suave */
+  /* Paleta: Rosa cálido, Coral y Crema */
+  --background: #fff6f5; /* Crema suave */
+  --foreground: #250e0e; /* Marrón cálido oscuro */
   
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.02 264);
+  --card: #fffbfa;
+  --card-foreground: #250e0e;
   
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 264);
+  --popover: oklch(0.99 0.005 30);
+  --popover-foreground: oklch(0.20 0.04 20);
   
-  /* Acento: Dorado cinematográfico */
-  --primary: oklch(0.55 0.15 75); /* Dorado/Amber oscuro */
-  --primary-foreground: oklch(0.98 0.005 75);
+  /* Acento principal: Coral rosado */
+  --primary: #db6468; 
+  --primary-foreground: oklch(0.99 0.01 20);
   
-  /* Secundario: Burgundy/Vino (cortinas de teatro) */
-  --secondary: oklch(0.92 0.01 264);
-  --secondary-foreground: oklch(0.20 0.02 264);
+  /* Secundario: Rosa suave */
+  --secondary: oklch(0.95 0.04 350);
+  --secondary-foreground: #4a1a33;
   
-  --muted: oklch(0.95 0.01 264);
-  --muted-foreground: oklch(0.50 0.02 264);
+  --muted: oklch(0.96 0.02 30);
+  --muted-foreground: oklch(0.50 0.04 25);
   
-  --accent: oklch(0.96 0.01 75); /* Dorado muy suave */
-  --accent-foreground: oklch(0.25 0.02 75);
+  --accent: oklch(0.94 0.05 15); /* Coral muy suave */
+  --accent-foreground: oklch(0.30 0.12 15);
   
-  --destructive: oklch(0.60 0.22 25);
-  --destructive-foreground: oklch(0.98 0.005 25);
+  --destructive: #d73337;
+  --destructive-foreground: oklch(0.98 0.01 25);
   
-  --border: oklch(0.90 0.01 264);
-  --input: oklch(0.90 0.01 264);
-  --ring: oklch(0.55 0.15 75);
+  --border: oklch(0.92 0.02 30);
+  --input: oklch(0.92 0.02 30);
+  --ring: #db6468;
   
-  /* Charts - tonos cinematográficos */
-  --chart-1: oklch(0.55 0.15 75); /* Dorado */
-  --chart-2: oklch(0.45 0.15 25); /* Burgundy */
-  --chart-3: oklch(0.35 0.08 264); /* Azul oscuro */
-  --chart-4: oklch(0.60 0.12 140); /* Verde oliva */
-  --chart-5: oklch(0.50 0.10 310); /* Púrpura */
+  /* Charts - Paleta armoniosa de rosas y corales */
+  --chart-1: oklch(0.65 0.15 20);  /* Coral rosado */
+  --chart-2: #d67ea9; /* Rosa */
+  --chart-3: oklch(0.75 0.10 40);  /* Melocotón */
+  --chart-4: #da748d;   /* Coral claro */
+  --chart-5: oklch(0.72 0.11 330); /* Rosa lavanda */
 }
 
 .dark {
-  /* Dark mode - tema cine noir */
-  --background: oklch(0.12 0.015 264); /* Negro azulado profundo */
-  --foreground: oklch(0.95 0.005 264); /* Blanco suave */
+  /* Dark Mode - Tonos cálidos profundos */
+  --background: oklch(0.15 0.03 20); /* Marrón oscuro cálido */
+  --foreground: oklch(0.95 0.01 30);
   
-  --card: oklch(0.16 0.015 264);
-  --card-foreground: oklch(0.95 0.005 264);
+  --card: oklch(0.18 0.03 20);
+  --card-foreground: oklch(0.95 0.01 30);
   
-  --popover: oklch(0.16 0.015 264);
-  --popover-foreground: oklch(0.95 0.005 264);
+  --popover: oklch(0.18 0.03 20);
+  --popover-foreground: oklch(0.95 0.01 30);
   
-  /* Dorado más brillante en dark mode */
-  --primary: oklch(0.65 0.18 75);
-  --primary-foreground: oklch(0.12 0.015 75);
+  /* Primary más brillante en dark */
+  --primary: oklch(0.70 0.16 20);
+  --primary-foreground: oklch(0.15 0.03 20);
   
-  --secondary: oklch(0.20 0.02 264);
-  --secondary-foreground: oklch(0.95 0.005 264);
+  --secondary: oklch(0.22 0.04 350);
+  --secondary-foreground: oklch(0.95 0.01 350);
   
-  --muted: oklch(0.20 0.02 264);
-  --muted-foreground: oklch(0.65 0.01 264);
+  --muted: oklch(0.22 0.03 25);
+  --muted-foreground: oklch(0.65 0.02 30);
   
-  --accent: oklch(0.24 0.02 75);
-  --accent-foreground: oklch(0.95 0.005 75);
+  --accent: oklch(0.25 0.05 15);
+  --accent-foreground: oklch(0.95 0.01 15);
   
-  --destructive: oklch(0.65 0.24 25);
-  --destructive-foreground: oklch(0.95 0.005 25);
+  --destructive: oklch(0.63 0.22 25);
+  --destructive-foreground: oklch(0.95 0.01 25);
   
-  --border: oklch(0.25 0.02 264);
-  --input: oklch(0.25 0.02 264);
-  --ring: oklch(0.65 0.18 75);
+  --border: oklch(0.27 0.03 25);
+  --input: oklch(0.27 0.03 25);
+  --ring: oklch(0.70 0.16 20);
   
-  /* Charts en dark */
-  --chart-1: oklch(0.65 0.18 75);
-  --chart-2: oklch(0.60 0.20 25);
-  --chart-3: oklch(0.55 0.15 210);
-  --chart-4: oklch(0.65 0.15 140);
-  --chart-5: oklch(0.60 0.15 310);
+  /* Charts en dark - más vibrantes */
+  --chart-1: oklch(0.70 0.16 20);
+  --chart-2: oklch(0.72 0.14 350);
+  --chart-3: oklch(0.75 0.12 40);
+  --chart-4: oklch(0.68 0.15 5);
+  --chart-5: oklch(0.72 0.13 330);
 }
 
 @layer base {
@@ -138,63 +141,58 @@
   }
   
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
     font-family: 'Inter', var(--font-sans);
   }
   
-  /* Títulos con la fuente Poppins */
+  /* Títulos cálidos y acogedores con Space Grotesk */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Poppins', var(--font-heading);
+    font-family: 'Space Grotesk', var(--font-heading);
     font-weight: 700;
     letter-spacing: -0.02em;
   }
   
-  h1 {
-    @apply text-4xl md:text-5xl;
-  }
-  
-  h2 {
-    @apply text-3xl md:text-4xl;
-  }
-  
-  h3 {
-    @apply text-2xl md:text-3xl;
-  }
-  
-  h4 {
-    @apply text-xl md:text-2xl;
-  }
+  h1 { @apply text-4xl md:text-5xl; }
+  h2 { @apply text-3xl md:text-4xl; }
+  h3 { @apply text-2xl md:text-3xl; }
+  h4 { @apply text-xl md:text-2xl; }
 }
 
-/* Efectos cinematográficos */
 @layer utilities {
-  .cinema-gradient {
+  /* Gradiente cálido coral-rosa */
+  .warm-gradient {
     background: linear-gradient(135deg, 
-      oklch(0.55 0.15 75) 0%, 
-      oklch(0.45 0.15 25) 100%
+      oklch(0.65 0.15 20) 0%, 
+      oklch(0.70 0.12 350) 100%
     );
   }
-  
-  .film-grain {
-    position: relative;
+
+  /* Efecto glassmorphism cálido */
+  .glass-card {
+    @apply bg-card/70 backdrop-blur-xl border border-border/50 shadow-lg;
   }
-  
-  .film-grain::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    opacity: 0.03;
-    pointer-events: none;
-  }
-  
-  .spotlight-text {
+
+  .text-gradient-warm {
     background: linear-gradient(135deg, 
-      oklch(0.65 0.18 75) 0%, 
-      oklch(0.75 0.15 75) 100%
+      oklch(0.65 0.15 20), 
+      oklch(0.70 0.12 350)
     );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+  
+  /* Sombras suaves y cálidas */
+  .shadow-warm {
+    box-shadow: 0 4px 16px -4px oklch(0.65 0.15 20 / 0.15);
+  }
+  
+  /* Corregido: Definimos el hover sin usar @apply sobre una clase propia */
+  .hover-warm {
+    transition: box-shadow 0.3s duration-300;
+  }
+  
+  .hover-warm:hover {
+    box-shadow: 0 4px 16px -4px oklch(0.65 0.15 20 / 0.15);
   }
 }

@@ -1,3 +1,4 @@
+// src/components/user/WelcomeDialog.tsx
 'use client';
 
 import { useState } from 'react';
@@ -28,7 +29,7 @@ export function WelcomeDialog() {
     e.preventDefault();
     
     if (!currentUser || !customName.trim()) {
-      toast.error('Por favor, introduce tu nombre');
+      toast.error('Por favor, introduce un nombre válido');
       return;
     }
 
@@ -61,7 +62,7 @@ export function WelcomeDialog() {
             </div>
           </div>
           <DialogTitle className="text-center text-2xl">
-            ¡Bienvenido/a a Rat-Ing! 🎬
+            ¡Bienvenido/a a Rat-Ing!
           </DialogTitle>
           <DialogDescription className="text-center">
             Para empezar, cuéntanos cómo te llamas

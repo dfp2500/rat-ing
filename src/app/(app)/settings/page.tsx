@@ -1,3 +1,5 @@
+// src/app/(app)/settings/page.tsx
+
 'use client';
 
 import { useState, useRef } from 'react';
@@ -18,7 +20,8 @@ import {
   UserIcon, 
   CameraIcon,
   LogOutIcon,
-  Loader2Icon 
+  Loader2Icon,
+  ImageIcon 
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -102,6 +105,27 @@ export default function SettingsPage() {
     }
   };
 
+  const handleRemovePhoto = async () => {
+    if (!currentUser) return;
+    
+    if (!confirm('¿Seguro que quieres eliminar tu foto de perfil?')) return;
+
+    setIsUpdatingPhoto(true);
+    try {
+      await userService.updateUser(currentUser.id, {
+        photoURL: undefined,
+      });
+      
+      toast.success('Foto de perfil eliminada');
+      await refetch();
+    } catch (error) {
+      console.error('Error removing photo:', error);
+      toast.error('Error al eliminar la foto');
+    } finally {
+      setIsUpdatingPhoto(false);
+    }
+  };
+
   const handleSignOut = async () => {
     if (confirm('¿Seguro que quieres cerrar sesión?')) {
       await signOut();
@@ -155,7 +179,7 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-6">
+            <div className="flex items-start gap-6">
               <div className="relative">
                 <Avatar className="h-24 w-24">
                   <AvatarImage src={currentUser.photoURL} alt={displayName} />
@@ -168,7 +192,7 @@ export default function SettingsPage() {
                 )}
               </div>
 
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 space-y-3">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -177,14 +201,26 @@ export default function SettingsPage() {
                   onChange={handlePhotoChange}
                   disabled={isUpdatingPhoto}
                 />
-                <Button
-                  variant="outline"
-                  onClick={handlePhotoClick}
-                  disabled={isUpdatingPhoto}
-                >
-                  <CameraIcon className="h-4 w-4 mr-2" />
-                  Cambiar foto
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handlePhotoClick}
+                    disabled={isUpdatingPhoto}
+                  >
+                    <CameraIcon className="h-4 w-4 mr-2" />
+                    Cambiar foto
+                  </Button>
+                  {currentUser.photoURL && (
+                    <Button
+                      variant="outline"
+                      onClick={handleRemovePhoto}
+                      disabled={isUpdatingPhoto}
+                    >
+                      <ImageIcon className="h-4 w-4 mr-2" />
+                      Eliminar
+                    </Button>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   JPG, PNG o GIF. Máximo 2MB.
                 </p>

@@ -19,11 +19,15 @@ import {
   AlertCircleIcon,
 } from 'lucide-react';
 import { getTMDBImageUrl } from '@/types/tmdb';
+import { useAllUsers } from '@/lib/hooks/useUser';
+import { getUserDisplayName } from '@/types/user';
+import { UserRole } from '@/types/user';
 
 export default function StatsPage() {
   const router = useRouter();
   const { global, computed, isLoading } = useAllStats();
   const { data: currentUser } = useCurrentUser();
+  const { data: allUsers } = useAllUsers();
 
   if (isLoading) {
     return <StatsPageSkeleton />;
@@ -48,6 +52,12 @@ export default function StatsPage() {
   const userStats = currentUser ? global[currentUser.role] : null;
   const otherUserRole = currentUser?.role === 'user_1' ? 'user_2' : 'user_1';
   const otherUserStats = global[otherUserRole];
+
+  const getUserName = (role: UserRole) => {
+    if (!allUsers) return role === 'user_1' ? 'Usuario 1' : 'Usuario 2';
+    const user = allUsers.find(u => u.role === role);
+    return user ? getUserDisplayName(user) : role === 'user_1' ? 'Usuario 1' : 'Usuario 2';
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
@@ -116,8 +126,8 @@ export default function StatsPage() {
               <DistributionChart
                 user1Distribution={global.user_1.distribution}
                 user2Distribution={global.user_2.distribution}
-                user1Label="Usuario 1"
-                user2Label="Usuario 2"
+                user1Label={getUserName('user_1')}
+                user2Label={getUserName('user_2')}
               />
             </CardContent>
           </Card>
@@ -126,7 +136,7 @@ export default function StatsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Usuario 1</CardTitle>
+                <CardTitle>{getUserName('user_1')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
@@ -148,7 +158,7 @@ export default function StatsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Usuario 2</CardTitle>
+                <CardTitle>{getUserName('user_2')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
@@ -263,7 +273,7 @@ export default function StatsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrophyIcon className="h-5 w-5 text-amber-500" />
+                  <TrophyIcon className="h-5 w-5 text-[#db6468]" />
                   Top 10 Mejor Valoradas
                 </CardTitle>
               </CardHeader>
@@ -297,7 +307,7 @@ export default function StatsPage() {
                         </div>
                         <div className="text-right">
                           <div className="flex items-center gap-1">
-                            <StarIcon className="h-4 w-4 fill-amber-500 text-amber-500" />
+                            <StarIcon className="h-4 w-4 fill-[#db6468] text-[#db6468]" />
                             <span className="text-lg font-bold">{movie.averageScore?.toFixed(1)}</span>
                           </div>
                           <p className="text-xs text-muted-foreground">

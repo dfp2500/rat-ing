@@ -50,3 +50,9 @@ export function getUserInitials(user: User): string {
     .toUpperCase()
     .slice(0, 2);
 }
+
+// Helper para obtener el nombre de un usuario por rol
+export function getUserNameByRole(users: User[], role: UserRole): string {
+  const user = users.find(u => u.role === role);
+  return user ? getUserDisplayName(user) : role === 'user_1' ? 'Usuario 1' : 'Usuario 2';
+}

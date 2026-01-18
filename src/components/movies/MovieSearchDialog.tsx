@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SearchIcon, XIcon, CalendarIcon } from 'lucide-react';
+import { StarIcon } from 'lucide-react';
 
 interface MovieSearchDialogProps {
   open: boolean;
@@ -211,8 +212,10 @@ function MovieResult({
       {/* Rating */}
       {movie.vote_average > 0 && (
         <div className="flex-shrink-0 text-right">
-          <div className="text-sm font-medium">
-            ⭐ {movie.vote_average.toFixed(1)}
+          <div className="flex items-center justify-end gap-1 text-sm font-medium">
+            {/* Usando el valor arbitrario [#db6468] */}
+            <StarIcon className="h-4 w-4 fill-[#db6468] text-[#db6468]" />
+            <span>{movie.vote_average.toFixed(1)}</span>
           </div>
         </div>
       )}

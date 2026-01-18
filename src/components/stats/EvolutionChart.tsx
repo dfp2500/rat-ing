@@ -18,7 +18,7 @@ interface EvolutionChartProps {
 export function EvolutionChart({ 
   data, 
   label = 'Promedio',
-  color = '#2563eb' // Usamos un color sólido por defecto para evitar problemas de HSL
+  color = '#db6468' // Usamos un color sólido por defecto para evitar problemas de HSL
 }: EvolutionChartProps) {
   
   if (!data || data.length === 0) {

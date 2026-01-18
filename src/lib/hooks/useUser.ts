@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { userService } from '../services/userService';
 import { User } from '@/types/user';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 /**
  * Hook para obtener el usuario actual desde Firestore
@@ -46,5 +48,23 @@ export function useUpdateUserPreferences() {
       // Invalidar query del usuario actual
       queryClient.invalidateQueries({ queryKey: ['user', firebaseUser?.uid] });
     },
+  });
+}
+
+/**
+ * Hook para obtener ambos usuarios
+ */
+export function useAllUsers() {
+  return useQuery({
+    queryKey: ['users', 'all'],
+    queryFn: async () => {
+      const usersCollection = collection(db, 'users');
+      const snapshot = await getDocs(usersCollection);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as User[];
+    },
+    staleTime: 5 * 60 * 1000,
   });
 }

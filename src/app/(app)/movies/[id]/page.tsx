@@ -19,6 +19,8 @@ import { UserRole } from '@/types/user';
 import { useDeleteMovie } from '@/lib/hooks/useMovies';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { TrashIcon } from 'lucide-react';
+import { useAllUsers } from '@/lib/hooks/useUser';
+import { getUserDisplayName } from '@/types/user';
 
 interface MovieDetailPageProps {
   params: Promise<{ id: string }>;
@@ -30,6 +32,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
   const { data: movie, isLoading, error, refetch } = useMovie(id);
   const { data: allMovies } = useMovies();
   const { data: currentUser } = useCurrentUser();
+  const { data: allUsers } = useAllUsers();
   const updateRating = useUpdateRating();
   const deleteMovie = useDeleteMovie();
 
@@ -145,6 +148,12 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
       console.error('Error deleting movie:', error);
       toast.error('Error al eliminar la película');
     }
+  };
+
+  const getOtherUserName = () => {
+    if (!allUsers || !currentUser) return otherUserRole === 'user_1' ? 'Usuario 1' : 'Usuario 2';
+    const otherUser = allUsers.find(u => u.role === otherUserRole);
+    return otherUser ? getUserDisplayName(otherUser) : otherUserRole === 'user_1' ? 'Usuario 1' : 'Usuario 2';
   };
 
   return (
@@ -296,7 +305,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                   <CardTitle>Valoraciones</CardTitle>
                   {movie.bothRated && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <CheckIcon className="h-3 w-3 text-green-500" />
+                      <CheckIcon className="h-3 w-3 text-[#db6468]" />
                       Ambos habéis valorado
                     </div>
                   )}
@@ -392,23 +401,26 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">
-                          {otherUserRole === 'user_1' ? 'Usuario 1' : 'Usuario 2'}
+                          {getOtherUserName()}
                         </span>
-                        {hasCurrentUserRating && currentUserRating.ratedAt && (
+                        {otherUserRating.ratedAt && (
                           <span className="text-xs text-muted-foreground">
-                            ({format(currentUserRating.ratedAt.toDate(), "d MMM yyyy", { locale: es })})
+                            ({format(otherUserRating.ratedAt.toDate(), "d MMM yyyy", { locale: es })})
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <StarIcon className="h-4 w-4 fill-primary text-primary" />
-                        <span className="text-lg font-bold">
-                          {otherUserRating.score}/10
-                        </span>
-                      </div>
                     </div>
+                    
+                    {/* Añade esto: Muestra la puntuación y el comentario del otro usuario */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <StarIcon className="h-5 w-5 fill-primary text-primary" /> {/* Usamos el color de usuario 2 */}
+                      <span className="text-2xl font-bold">
+                        {otherUserRating.score}/10
+                      </span>
+                    </div>
+                    
                     {otherUserRating.comment && (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground italic">
                         {`"${otherUserRating.comment}"`}
                       </p>
                     )}
@@ -416,7 +428,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                 ) : (
                   <div className="p-4 rounded-lg border border-dashed">
                     <p className="text-sm text-muted-foreground text-center">
-                      {otherUserRole === 'user_1' ? 'Usuario 1' : 'Usuario 2'} aún no ha valorado
+                      {getOtherUserName()} aún no ha valorado
                     </p>
                   </div>
                 )}
@@ -427,7 +439,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium">Puntuación media</span>
                       <div className="flex items-center gap-2">
-                        <StarIcon className="h-5 w-5 fill-amber-500 text-amber-500" />
+                        <StarIcon className="h-5 w-5 fill-[#db6468] text-[#db6468]" />
                         <span className="text-2xl font-bold">
                           {movie.averageScore.toFixed(1)}/10
                         </span>

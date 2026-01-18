@@ -105,7 +105,7 @@ export function MovieForm({ movie, onCancel }: MovieFormProps) {
               
               {movie.vote_average > 0 && (
                 <div className="flex items-center gap-2 mb-3">
-                  <StarIcon className="h-4 w-4 fill-amber-500 text-amber-500" />
+                  <StarIcon className="h-4 w-4 fill-[#db6468] text-[#db6468]" />
                   <span className="text-sm font-medium">
                     {movie.vote_average.toFixed(1)} / 10
                   </span>

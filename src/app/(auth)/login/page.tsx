@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useEffect } from 'react';
+import { Logo } from '@/components/shared/Logo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -58,6 +59,9 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center">
+          <div className="flex justify-center mb-4"> {/* Agregamos este contenedor */}
+            <Logo size="lg" showText={false} />
+          </div>
           <h1 className="text-4xl font-bold">Rat-Ing</h1>
           <p className="mt-2 text-muted-foreground">
             Inicia sesión para continuar

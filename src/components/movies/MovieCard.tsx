@@ -10,6 +10,8 @@ import { StarIcon, CalendarIcon, ClockIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useAllUsers } from '@/lib/hooks/useUser';
+import { getUserDisplayName, getUserInitials } from '@/types/user';
 
 interface MovieCardProps {
   movie: Movie;
@@ -24,10 +26,21 @@ export const MovieCard = memo(function MovieCard({
 }: MovieCardProps) {
   const posterUrl = getTMDBImageUrl(movie.posterPath ?? null, 'w342');
   const year = movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : '';
+  const { data: allUsers } = useAllUsers();
   
   const hasUserRating = currentUserRole 
     ? movie.ratings[currentUserRole] !== undefined 
     : false;
+
+  const getUserLabel = (role: UserRole) => {
+    if (!allUsers) return role === 'user_1' ? 'U1' : 'U2';
+    const user = allUsers.find(u => u.role === role);
+    if (!user) return role === 'user_1' ? 'U1' : 'U2';
+    
+    const name = getUserDisplayName(user);
+    // Usar iniciales si el nombre es largo
+    return name.length > 8 ? getUserInitials(user) : name;
+  };
 
   return (
     <Card
@@ -57,7 +70,7 @@ export const MovieCard = memo(function MovieCard({
 
           {movie.averageScore && (
             <div className="px-2 py-1 rounded-md bg-black/70 text-white text-xs font-medium backdrop-blur-sm flex items-center gap-1">
-              <StarIcon className="h-3 w-3 fill-amber-500 text-amber-500" />
+              <StarIcon className="h-3 w-3 fill-[#db6468] text-[#db6468]" />
               {movie.averageScore.toFixed(1)}
             </div>
           )}
@@ -92,12 +105,12 @@ export const MovieCard = memo(function MovieCard({
         {/* Ratings */}
         <div className="flex gap-2">
           <RatingBadge
-            label="U1"
+            label={getUserLabel('user_1')}
             score={movie.ratings.user_1?.score}
             isCurrentUser={currentUserRole === 'user_1'}
           />
           <RatingBadge
-            label="U2"
+            label={getUserLabel('user_2')}
             score={movie.ratings.user_2?.score}
             isCurrentUser={currentUserRole === 'user_2'}
           />

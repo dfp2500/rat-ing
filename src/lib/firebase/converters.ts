@@ -1,3 +1,5 @@
+// src/lib/firebase/converters.ts
+
 import {
   FirestoreDataConverter,
   DocumentData,
@@ -9,17 +11,21 @@ import { User } from '@/types/user';
 import { Movie } from '@/types/movie';
 import { GlobalStats } from '@/types/stats';
 
-// Converter para Users
+// Converter para Users - CORREGIDO
 export const userConverter: FirestoreDataConverter<User> = {
-  toFirestore(user: User): DocumentData {
-    return {
-      email: user.email,
-      displayName: user.displayName,
-      photoURL: user.photoURL || null,
-      role: user.role,
-      createdAt: user.createdAt,
-      preferences: user.preferences || null,
-    };
+  toFirestore(user: WithFieldValue<Partial<User>>): DocumentData {
+    // Filtrar solo los campos que están definidos
+    const data: DocumentData = {};
+    
+    if (user.email !== undefined) data.email = user.email;
+    if (user.displayName !== undefined) data.displayName = user.displayName;
+    if (user.customDisplayName !== undefined) data.customDisplayName = user.customDisplayName;
+    if (user.photoURL !== undefined) data.photoURL = user.photoURL;
+    if (user.role !== undefined) data.role = user.role;
+    if (user.createdAt !== undefined) data.createdAt = user.createdAt;
+    if (user.preferences !== undefined) data.preferences = user.preferences;
+
+    return data;
   },
 
   fromFirestore(
@@ -31,6 +37,7 @@ export const userConverter: FirestoreDataConverter<User> = {
       id: snapshot.id,
       email: data.email,
       displayName: data.displayName,
+      customDisplayName: data.customDisplayName,
       photoURL: data.photoURL || undefined,
       role: data.role,
       createdAt: data.createdAt,
@@ -39,9 +46,8 @@ export const userConverter: FirestoreDataConverter<User> = {
   },
 };
 
-// Converter para Movies
+// El resto de converters permanecen igual...
 export const movieConverter: FirestoreDataConverter<Movie> = {
-  // Cambiamos el tipo del argumento a WithFieldValue<Movie>
   toFirestore(movie: WithFieldValue<Movie>): DocumentData {
     return {
       tmdbId: movie.tmdbId,
@@ -54,8 +60,6 @@ export const movieConverter: FirestoreDataConverter<Movie> = {
       addedBy: movie.addedBy,
       watchedDate: movie.watchedDate,
       createdAt: movie.createdAt,
-      // Usamos as any o validamos manualmente porque WithFieldValue 
-      // hace que los objetos anidados sean complejos de tipar profundamente
       ratings: movie.ratings || {
         user_1: null,
         user_2: null,
@@ -92,7 +96,6 @@ export const movieConverter: FirestoreDataConverter<Movie> = {
   },
 };
 
-// Converter para GlobalStats
 export const statsConverter: FirestoreDataConverter<GlobalStats> = {
   toFirestore(stats: GlobalStats): DocumentData {
     return {

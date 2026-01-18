@@ -8,6 +8,8 @@ import { StarIcon, CalendarIcon, ClockIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { getUserDisplayName, getUserInitials } from '@/types/user';
+import { useAllUsers } from '@/lib/hooks/useUser';
 
 interface CompactMovieCardProps {
   movie: Movie;
@@ -24,10 +26,21 @@ export function CompactMovieCard({
 }: CompactMovieCardProps) {
   const posterUrl = getTMDBImageUrl(movie.posterPath ?? null, 'w154');
   const year = movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : '';
+  const { data: allUsers } = useAllUsers();
 
   const hasUserRating = currentUserRole
     ? movie.ratings[currentUserRole] !== undefined
     : false;
+
+  const getUserLabel = (role: UserRole) => {
+    if (!allUsers) return role === 'user_1' ? 'U1' : 'U2';
+    const user = allUsers.find(u => u.role === role);
+    if (!user) return role === 'user_1' ? 'U1' : 'U2';
+    
+    const name = getUserDisplayName(user);
+    // Usar iniciales si el nombre es largo
+    return name.length > 8 ? getUserInitials(user) : name;
+  };
 
   return (
     <Card
@@ -52,7 +65,7 @@ export function CompactMovieCard({
           {/* Badge de score */}
           {movie.averageScore && (
             <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/80 text-white text-[10px] font-bold flex items-center gap-0.5">
-              <StarIcon className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+              <StarIcon className="h-2.5 w-2.5 fill-[#db6468] text-[#db6468]" />
               {movie.averageScore.toFixed(1)}
             </div>
           )}
@@ -86,12 +99,12 @@ export function CompactMovieCard({
             {/* Mini badges de ratings */}
             <div className="flex gap-1">
               <MiniRatingBadge
-                label="U1"
+                label={getUserLabel('user_1')}
                 score={movie.ratings.user_1?.score}
                 isCurrentUser={currentUserRole === 'user_1'}
               />
               <MiniRatingBadge
-                label="U2"
+                label={getUserLabel('user_2')}
                 score={movie.ratings.user_2?.score}
                 isCurrentUser={currentUserRole === 'user_2'}
               />

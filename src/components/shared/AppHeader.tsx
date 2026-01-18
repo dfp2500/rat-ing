@@ -15,11 +15,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from './ThemeToggle';
 import { FilmIcon, LayoutDashboardIcon, LogOutIcon, UserIcon, TrendingUpIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getUserDisplayName, getUserInitials } from '@/types/user';
+import { Logo } from './Logo';
 
 export function AppHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const { data: currentUser } = useCurrentUser();
+  const userDisplayName = currentUser ? getUserDisplayName(currentUser) : '';
+  const userInitials = currentUser ? getUserInitials(currentUser) : '??';
 
   const handleSignOut = async () => {
     await signOut();
@@ -32,13 +36,6 @@ export function AppHeader() {
     { href: '/stats', label: 'Estadísticas', icon: TrendingUpIcon },
   ];
 
-  const userInitials = currentUser?.displayName
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || '??';
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -49,8 +46,7 @@ export function AppHeader() {
               onClick={() => router.push('/dashboard')}
               className="flex items-center gap-2 font-bold text-lg hover:opacity-80 transition-opacity"
             >
-              <FilmIcon className="h-5 w-5" />
-              <span className="hidden sm:inline">Rat-Ing</span>
+              <Logo size="sm" showText={true} />
             </button>
 
             {/* Nav Links - Desktop */}
@@ -95,7 +91,7 @@ export function AppHeader() {
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">
-                      {currentUser?.displayName}
+                      {userDisplayName}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">
                       {currentUser?.email}
@@ -118,7 +114,7 @@ export function AppHeader() {
                   <DropdownMenuSeparator />
                 </div>
 
-                <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                <DropdownMenuItem onClick={() => router.push('/settings')}>
                   <UserIcon className="h-4 w-4 mr-2" />
                   Mi Perfil
                 </DropdownMenuItem>

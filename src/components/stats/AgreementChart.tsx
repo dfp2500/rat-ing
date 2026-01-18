@@ -1,6 +1,8 @@
 'use client';
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+// Importamos los tipos necesarios para el formateador
+import { NameType, ValueType, Formatter } from 'recharts/types/component/DefaultTooltipContent';
 
 interface AgreementChartProps {
   perfectAgreement: number;
@@ -10,10 +12,10 @@ interface AgreementChartProps {
 }
 
 const COLORS = {
-  perfect: 'hsl(142, 76%, 36%)', // green-600
-  close: 'hsl(142, 71%, 45%)', // green-500
-  moderate: 'hsl(43, 96%, 56%)', // amber-500
-  disagreement: 'hsl(0, 84%, 60%)', // red-500
+  perfect: 'hsl(142, 76%, 36%)',
+  close: 'hsl(142, 71%, 45%)',
+  moderate: 'hsl(43, 96%, 56%)',
+  disagreement: 'hsl(0, 84%, 60%)',
 };
 
 export function AgreementChart({
@@ -29,6 +31,11 @@ export function AgreementChart({
     { name: 'Desacuerdo (>2)', value: disagreement, color: COLORS.disagreement },
   ].filter((item) => item.value > 0);
 
+  // Formateador estilo EvolutionChart
+  const tooltipFormatter: Formatter<ValueType, NameType> = (value, name) => {
+    return [value, String(name)];
+  };
+
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center h-[300px] text-muted-foreground">
@@ -41,32 +48,36 @@ export function AgreementChart({
     <ResponsiveContainer width="100%" height={300}>
       <PieChart>
         <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            // Añadimos una validación para asegurar que percent sea un número
-            label={({ name, percent }) => 
-                percent !== undefined 
-                ? `${name}: ${(percent * 100).toFixed(0)}%` 
-                : name
-            }
-            outerRadius={80}
-            fill="#8884d8"
-            dataKey="value"
-            >
-            {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-            ))}
+          data={data}
+          cx="50%"
+          cy="50%"
+          labelLine={false}
+          label={({ name, percent }) => 
+            percent !== undefined 
+              ? `${(percent * 100).toFixed(0)}%` 
+              : name
+          }
+          outerRadius={80}
+          fill="#8884d8"
+          dataKey="value"
+        >
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={entry.color} />
+          ))}
         </Pie>
+        
         <Tooltip
           contentStyle={{
-            backgroundColor: 'hsl(var(--popover))',
-            border: '1px solid hsl(var(--border))',
+            backgroundColor: 'white', // Fondo blanco como en EvolutionChart
+            border: '1px solid #e2e8f0', // Borde gris claro
             borderRadius: '0.5rem',
+            padding: '8px',
           }}
+          itemStyle={{ color: '#374151' }} // Color de texto oscuro para legibilidad
+          formatter={tooltipFormatter}
         />
-        <Legend />
+        
+        <Legend verticalAlign="bottom" height={36} />
       </PieChart>
     </ResponsiveContainer>
   );
