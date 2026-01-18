@@ -226,12 +226,8 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                 <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                 <span>
                   Visto el{' '}
-                  {movie.watchedDate
-                    ? format(
-                        movie.watchedDate.toDate(),
-                        "d 'de' MMMM 'de' yyyy",
-                        { locale: es }
-                      )
+                  {movie.watchedDate && typeof movie.watchedDate.toDate === 'function'
+                    ? format(movie.watchedDate.toDate(), "d 'de' MMMM 'de' yyyy", { locale: es })
                     : 'Fecha desconocida'}
                 </span>
                 <EditWatchedDate
@@ -286,7 +282,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">Tu valoración</span>
-                        {hasCurrentUserRating && (
+                        {hasCurrentUserRating && currentUserRating.ratedAt && (
                           <span className="text-xs text-muted-foreground">
                             ({format(currentUserRating.ratedAt.toDate(), "d MMM yyyy", { locale: es })})
                           </span>
@@ -371,9 +367,11 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                         <span className="font-medium">
                           {otherUserRole === 'user_1' ? 'Usuario 1' : 'Usuario 2'}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          ({format(otherUserRating.ratedAt.toDate(), "d MMM yyyy", { locale: es })})
-                        </span>
+                        {hasCurrentUserRating && currentUserRating.ratedAt && (
+                          <span className="text-xs text-muted-foreground">
+                            ({format(currentUserRating.ratedAt.toDate(), "d MMM yyyy", { locale: es })})
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <StarIcon className="h-4 w-4 fill-primary text-primary" />

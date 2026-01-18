@@ -1,7 +1,10 @@
+// Actualización para src/app/(app)/movies/page.tsx
+// Añadir soporte para parámetros de URL
+
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useMovies } from '@/lib/hooks/useMovies';
 import { useCurrentUser } from '@/lib/hooks/useUser';
 import { MovieCard } from '@/components/movies/MovieCard';
@@ -15,58 +18,47 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PlusIcon, FilterIcon, Loader2Icon } from 'lucide-react';
+import { Movie } from '@/types/movie';
 
 type SortOption = 'date-desc' | 'date-asc' | 'rating-desc' | 'rating-asc';
 type FilterOption = 'all' | 'rated' | 'pending';
 
 export default function MoviesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: movies, isLoading } = useMovies();
   const { data: currentUser } = useCurrentUser();
 
+  // Leer filtro inicial de URL
+  const initialFilter = (searchParams.get('filter') as FilterOption) || 'all';
+
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
-  const [filterBy, setFilterBy] = useState<FilterOption>('all');
+  const [filterBy, setFilterBy] = useState<FilterOption>(initialFilter);
   const [displayCount, setDisplayCount] = useState(20);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  // --- CONTROLADORES DE EVENTOS (Evitan el error de cascading renders) ---
-  const handleFilterChange = (value: FilterOption) => {
-    setFilterBy(value);
-    setDisplayCount(20); // Reseteamos el scroll al filtrar
-  };
-
-  const handleSortChange = (value: SortOption) => {
-    setSortBy(value);
-    setDisplayCount(20); // Reseteamos el scroll al ordenar
-  };
-
-  // --- LÓGICA DE FILTRADO Y ORDENADO ---
+  // Filtrar y ordenar películas
   const filteredAndSortedMovies = useMemo(() => {
     if (!movies) return [];
 
     let result = [...movies];
 
-    // Solución al error "Object is possibly undefined"
-    if (currentUser) {
-      if (filterBy === 'rated') {
-        result = result.filter((m) => m.ratings && m.ratings[currentUser.role] !== undefined);
-      } else if (filterBy === 'pending') {
-        result = result.filter((m) => !m.ratings || m.ratings[currentUser.role] === undefined);
-      }
+    // Aplicar filtros
+    if (filterBy === 'rated' && currentUser) {
+      result = result.filter((m) => m.ratings[currentUser.role] !== undefined);
+    } else if (filterBy === 'pending' && currentUser) {
+      result = result.filter((m) => m.ratings[currentUser.role] === undefined);
     }
 
-    // Aplicar ordenamiento con protecciones de nulos
+    // Aplicar ordenamiento
     result.sort((a, b) => {
-      const timeA = a.watchedDate?.toMillis?.() || 0;
-      const timeB = b.watchedDate?.toMillis?.() || 0;
-
       switch (sortBy) {
         case 'date-desc':
-          return timeB - timeA;
+          return b.watchedDate.toMillis() - a.watchedDate.toMillis();
         case 'date-asc':
-          return timeA - timeB;
+          return a.watchedDate.toMillis() - b.watchedDate.toMillis();
         case 'rating-desc':
           return (b.averageScore || 0) - (a.averageScore || 0);
         case 'rating-asc':
@@ -79,11 +71,11 @@ export default function MoviesPage() {
     return result;
   }, [movies, sortBy, filterBy, currentUser]);
 
-  // Películas a mostrar (con límite para infinite scroll)
+  // Películas a mostrar (con límite)
   const displayedMovies = filteredAndSortedMovies.slice(0, displayCount);
   const hasMore = displayCount < filteredAndSortedMovies.length;
 
-  // --- INFINITE SCROLL ---
+  // Intersection Observer para infinite scroll
   // --- INFINITE SCROLL CORREGIDO ---
   useEffect(() => {
     const currentRef = loadMoreRef.current;
@@ -110,6 +102,7 @@ export default function MoviesPage() {
     setIsRefreshing(false);
   };
 
+  // Estados de carga y vacío
   if (isLoading) {
     return <MoviesPageSkeleton />;
   }
@@ -118,6 +111,7 @@ export default function MoviesPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Refresh Indicator */}
       {isRefreshing && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-primary/10 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-center gap-2">
@@ -163,7 +157,7 @@ export default function MoviesPage() {
                 <FilterIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 <Select
                   value={filterBy}
-                  onValueChange={(value) => handleFilterChange(value as FilterOption)}
+                  onValueChange={(value) => setFilterBy(value as FilterOption)}
                 >
                   <SelectTrigger className="w-full sm:w-[180px]">
                     <SelectValue placeholder="Filtrar por..." />
@@ -178,7 +172,7 @@ export default function MoviesPage() {
 
               <Select
                 value={sortBy}
-                onValueChange={(value) => handleSortChange(value as SortOption)}
+                onValueChange={(value) => setSortBy(value as SortOption)}
               >
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Ordenar por..." />
@@ -209,7 +203,6 @@ export default function MoviesPage() {
               onClick={() => {
                 setFilterBy('all');
                 setSortBy('date-desc');
-                setDisplayCount(20);
               }}
               className="mt-4"
             >
@@ -239,7 +232,8 @@ export default function MoviesPage() {
           </div>
         )}
 
-        {hasMovies && (
+        {/* Stats Footer */}
+        {!hasMovies ? null : (
           <div className="text-center py-8 text-sm text-muted-foreground">
             Mostrando {displayedMovies.length} de {filteredAndSortedMovies.length} películas
           </div>
