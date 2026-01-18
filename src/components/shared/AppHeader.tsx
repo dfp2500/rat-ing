@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { FilmIcon, LayoutDashboardIcon, LogOutIcon, UserIcon } from 'lucide-react';
+import { FilmIcon, LayoutDashboardIcon, LogOutIcon, UserIcon, TrendingUpIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function AppHeader() {
@@ -28,6 +28,7 @@ export function AppHeader() {
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboardIcon },
     { href: '/movies', label: 'Películas', icon: FilmIcon },
+    { href: '/stats', label: 'Estadísticas', icon: TrendingUpIcon },
   ];
 
   const userInitials = currentUser?.displayName

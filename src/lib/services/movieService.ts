@@ -21,6 +21,7 @@ import {
   checkBothRated,
 } from '@/types/movie';
 import { UserRole } from '@/types/user';
+import { statsService } from './statsService';
 
 export class MovieService {
   /**
@@ -69,6 +70,13 @@ export class MovieService {
     };
 
     const docRef = await addDoc(moviesCollection, newMovie as Movie);
+
+    try {
+      await statsService.updateGlobalStats();
+    } catch (e) {
+      console.error("Error actualizando estadísticas globales:", e);
+    }
+
     const snapshot = await getDoc(docRef);
 
     if (!snapshot.exists()) {
@@ -179,6 +187,12 @@ export class MovieService {
       averageScore: averageScore ?? null,
       bothRated,
     });
+
+    try {
+      await statsService.updateGlobalStats();
+    } catch (e) {
+      console.error("Error actualizando estadísticas globales:", e);
+    }
 
     // Obtener documento actualizado
     const updatedSnapshot = await getDoc(movieDoc);

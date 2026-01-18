@@ -274,13 +274,12 @@ export default function DashboardPage() {
                     variant="outline"
                     className="justify-start h-auto py-4"
                     onClick={() => router.push('/stats')}
-                    disabled
                   >
                     <TrendingUpIcon className="h-5 w-5 mr-3" />
                     <div className="text-left">
                       <div className="font-semibold">Ver Estadísticas</div>
                       <div className="text-xs text-muted-foreground">
-                        Próximamente
+                        Análisis y gráficos detallados
                       </div>
                     </div>
                   </Button>
