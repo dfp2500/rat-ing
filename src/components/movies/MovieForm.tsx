@@ -46,7 +46,7 @@ export function MovieForm({ movie, onCancel }: MovieFormProps) {
         posterPath: movie.poster_path || undefined,
         backdropPath: movie.backdrop_path || undefined,
         releaseDate: movie.release_date,
-        genres: movie.genre_ids.map(String), // Convertir IDs a strings
+        genres: movie.genre_ids.map(id => String(id)), // ← IMPORTANTE: Convertir a strings
         overview: movie.overview,
         addedBy: currentUser.id,
         watchedDate,
@@ -54,7 +54,7 @@ export function MovieForm({ movie, onCancel }: MovieFormProps) {
         ? {
             userRole: currentUser.role,
             score: rating,
-            comment: comment.trim() || "", // Cambiado a string vacío
+            comment: comment.trim() || "",
           }
         : undefined,
       });
@@ -65,7 +65,6 @@ export function MovieForm({ movie, onCancel }: MovieFormProps) {
           : `¡"${movie.title}" añadida! Podrás valorarla más tarde.`
       );
 
-      // Redirigir al detalle de la película
       router.push(`/movies/${newMovie.id}`);
     } catch (error) {
       console.error('Error adding movie:', error);

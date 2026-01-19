@@ -107,8 +107,8 @@ export default function DashboardPage() {
                 Añadir Película
               </Button>
             </div>
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Stats Grid - 2x2 en móvil, 4 columnas en desktop */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
               <StatsCard
                 title="Total Películas"
                 value={stats.total}
@@ -139,9 +139,7 @@ export default function DashboardPage() {
                 value={stats.pending}
                 icon={ClockIcon}
                 description="Por valorar"
-                onClick={() =>
-                  router.push('/movies?filter=pending')
-                }
+                onClick={() => router.push('/movies?filter=pending')}
                 variant={stats.pending > 0 ? 'warning' : 'default'}
               />
             </div>

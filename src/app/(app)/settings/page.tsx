@@ -179,8 +179,9 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-start gap-6">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+              {/* Avatar */}
+              <div className="relative mx-auto sm:mx-0">
                 <Avatar className="h-24 w-24">
                   <AvatarImage src={currentUser.photoURL} alt={displayName} />
                   <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
@@ -192,7 +193,8 @@ export default function SettingsPage() {
                 )}
               </div>
 
-              <div className="flex-1 space-y-3">
+              {/* Botones - Stack vertical en móvil */}
+              <div className="flex-1 space-y-3 w-full sm:w-auto">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -201,11 +203,14 @@ export default function SettingsPage() {
                   onChange={handlePhotoChange}
                   disabled={isUpdatingPhoto}
                 />
-                <div className="flex gap-2">
+                
+                {/* Botones apilados verticalmente en móvil, horizontal en desktop */}
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     variant="outline"
                     onClick={handlePhotoClick}
                     disabled={isUpdatingPhoto}
+                    className="w-full sm:w-auto"
                   >
                     <CameraIcon className="h-4 w-4 mr-2" />
                     Cambiar foto
@@ -215,13 +220,15 @@ export default function SettingsPage() {
                       variant="outline"
                       onClick={handleRemovePhoto}
                       disabled={isUpdatingPhoto}
+                      className="w-full sm:w-auto"
                     >
                       <ImageIcon className="h-4 w-4 mr-2" />
                       Eliminar
                     </Button>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                
+                <p className="text-xs text-muted-foreground text-center sm:text-left">
                   JPG, PNG o GIF. Máximo 2MB.
                 </p>
               </div>

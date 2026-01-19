@@ -20,7 +20,15 @@ import { useDeleteMovie } from '@/lib/hooks/useMovies';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { TrashIcon } from 'lucide-react';
 import { useAllUsers } from '@/lib/hooks/useUser';
-import { getUserDisplayName } from '@/types/user';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getUserDisplayName, getUserInitials } from '@/types/user';
+import { getGenreNames } from '@/lib/tmdb/genres';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface MovieDetailPageProps {
   params: Promise<{ id: string }>;
@@ -41,6 +49,12 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
   const [editRating, setEditRating] = useState(7);
   const [editComment, setEditComment] = useState('');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showAllGenres, setShowAllGenres] = useState(false);
+
+  const genreNames = useMemo(() => {
+    if (!movie?.genres || movie?.genres.length === 0) return [];
+    return getGenreNames(movie?.genres);
+  }, [movie?.genres]);
 
   // Navegación entre películas
   const { prevMovie, nextMovie } = useMemo(() => {
@@ -172,29 +186,34 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
 
       {/* Content */}
       <div className="max-w-6xl mx-auto px-4 -mt-32 relative z-10 pb-12">
-        {/* Breadcrumb y acciones */}
-        <div className="mb-6 flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={() => router.back()}
-          >
-            <ArrowLeftIcon className="h-4 w-4 mr-2" />
-            Volver
-          </Button>
-          
-          <div className="flex gap-2">
-            {/* Botón eliminar */}
+        {/* Breadcrumb y acciones - Diseño responsive */}
+        <div className="mb-6 space-y-3">
+          {/* Primera fila: Volver + Eliminar */}
+          <div className="flex items-center justify-between gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.back()}
+              className="shrink-0"
+            >
+              <ArrowLeftIcon className="h-4 w-4 mr-2" />
+              Volver
+            </Button>
+            
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowDeleteDialog(true)}
-              className="text-destructive hover:bg-destructive/10"
+              className="text-destructive hover:bg-destructive/10 shrink-0"
             >
-              <TrashIcon className="h-4 w-4 mr-2" />
-              Eliminar
+              <TrashIcon className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Eliminar</span>
             </Button>
-            
-            {/* Navegación entre películas */}
+          </div>
+
+          {/* Segunda fila: Navegación entre películas + Ver todas */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Navegación películas */}
             <div className="flex gap-1">
               <Button
                 variant="outline"
@@ -216,10 +235,12 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
               </Button>
             </div>
             
+            {/* Ver todas */}
             <Button
               variant="outline"
               size="sm"
               onClick={() => router.push('/movies')}
+              className="shrink-0"
             >
               Ver todas
             </Button>
@@ -272,9 +293,10 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                 />
               </div>
 
-              {movie.genres.length > 0 && (
-                <div className="flex gap-2">
-                  {movie.genres.slice(0, 3).map((genre) => (
+              {/* GÉNEROS CLICKEABLES */}
+              {genreNames.length > 0 && (
+                <div className="flex gap-2 flex-wrap">
+                  {genreNames.slice(0, 3).map((genre) => (
                     <span
                       key={genre}
                       className="px-2 py-1 rounded-full bg-muted text-xs"
@@ -282,6 +304,14 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                       {genre}
                     </span>
                   ))}
+                  {genreNames.length > 3 && (
+                    <button
+                      onClick={() => setShowAllGenres(true)}
+                      className="px-2 py-1 rounded-full bg-muted text-xs hover:bg-accent transition-colors cursor-pointer"
+                    >
+                      +{genreNames.length - 3}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -316,14 +346,25 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                 {currentUser && (
                   <div className="p-4 rounded-lg bg-primary/5 border-2 border-primary/20">
                     <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Tu valoración</span>
-                        {hasCurrentUserRating && currentUserRating.ratedAt && (
-                          <span className="text-xs text-muted-foreground">
-                            ({format(currentUserRating.ratedAt.toDate(), "d MMM yyyy", { locale: es })})
-                          </span>
-                        )}
+                      <div className="flex items-center gap-3">
+                        {/* Avatar del usuario actual */}
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={currentUser.photoURL} alt={getUserDisplayName(currentUser)} />
+                          <AvatarFallback className="text-xs">
+                            {getUserInitials(currentUser)}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        <div>
+                          <span className="font-medium">{getUserDisplayName(currentUser)}</span>
+                          {hasCurrentUserRating && currentUserRating.ratedAt && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({format(currentUserRating.ratedAt.toDate(), "d MMM yyyy", { locale: es })})
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      
                       {!isEditingRating && (
                         <Button
                           variant="outline"
@@ -399,21 +440,34 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                 {otherUserRating ? (
                   <div className="p-4 rounded-lg bg-muted">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">
-                          {getOtherUserName()}
-                        </span>
-                        {otherUserRating.ratedAt && (
-                          <span className="text-xs text-muted-foreground">
-                            ({format(otherUserRating.ratedAt.toDate(), "d MMM yyyy", { locale: es })})
-                          </span>
-                        )}
+                      <div className="flex items-center gap-3">
+                        {/* Avatar del otro usuario */}
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage 
+                            src={allUsers?.find(u => u.role === otherUserRole)?.photoURL} 
+                            alt={getOtherUserName()} 
+                          />
+                          <AvatarFallback className="text-xs">
+                            {allUsers?.find(u => u.role === otherUserRole) 
+                              ? getUserInitials(allUsers.find(u => u.role === otherUserRole)!)
+                              : otherUserRole === 'user_1' ? 'U1' : 'U2'
+                            }
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        <div>
+                          <span className="font-medium">{getOtherUserName()}</span>
+                          {otherUserRating.ratedAt && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({format(otherUserRating.ratedAt.toDate(), "d MMM yyyy", { locale: es })})
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
-                    {/* Añade esto: Muestra la puntuación y el comentario del otro usuario */}
                     <div className="flex items-center gap-2 mb-2">
-                      <StarIcon className="h-5 w-5 fill-primary text-primary" /> {/* Usamos el color de usuario 2 */}
+                      <StarIcon className="h-5 w-5 fill-primary text-primary" />
                       <span className="text-2xl font-bold">
                         {otherUserRating.score}/10
                       </span>
@@ -427,8 +481,23 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                   </div>
                 ) : (
                   <div className="p-4 rounded-lg border border-dashed">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage 
+                          src={allUsers?.find(u => u.role === otherUserRole)?.photoURL} 
+                          alt={getOtherUserName()} 
+                        />
+                        <AvatarFallback className="text-xs">
+                          {allUsers?.find(u => u.role === otherUserRole) 
+                            ? getUserInitials(allUsers.find(u => u.role === otherUserRole)!)
+                            : otherUserRole === 'user_1' ? 'U1' : 'U2'
+                          }
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium">{getOtherUserName()}</span>
+                    </div>
                     <p className="text-sm text-muted-foreground text-center">
-                      {getOtherUserName()} aún no ha valorado
+                      Aún no ha valorado
                     </p>
                   </div>
                 )}
@@ -476,6 +545,23 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
         variant="destructive"
         isLoading={deleteMovie.isPending}
       />
+      <Dialog open={showAllGenres} onOpenChange={setShowAllGenres}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Géneros de {movie.title}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-wrap gap-2 p-4">
+            {genreNames.map((genre) => (
+              <span
+                key={genre}
+                className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium"
+              >
+                {genre}
+              </span>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
     
   );

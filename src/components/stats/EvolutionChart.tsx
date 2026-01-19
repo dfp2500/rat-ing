@@ -18,7 +18,7 @@ interface EvolutionChartProps {
 export function EvolutionChart({ 
   data, 
   label = 'Promedio',
-  color = '#db6468' // Usamos un color sólido por defecto para evitar problemas de HSL
+  color = '#db6468'
 }: EvolutionChartProps) {
   
   if (!data || data.length === 0) {
@@ -29,14 +29,12 @@ export function EvolutionChart({
     );
   }
 
-  // Formatear datos asegurando tipos numéricos
   const formattedData = data.map((item) => ({
     ...item,
     monthLabel: formatMonth(item.month),
     average: Number(item.average) 
   }));
 
-  // Formatter con tipos oficiales de Recharts
   const tooltipFormatter: Formatter<ValueType, NameType> = (value, name) => {
     const numValue = Number(value || 0);
     const nameStr = String(name || '');
@@ -48,7 +46,7 @@ export function EvolutionChart({
   };
 
   return (
-    <div className="w-full h-[300px]">
+    <div className="w-full h-[300px] select-none" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={formattedData} margin={{ top: 5, right: 30, left: 20, bottom: 25 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
@@ -86,7 +84,7 @@ export function EvolutionChart({
             dot={{ r: 4, fill: color, strokeWidth: 2 }}
             activeDot={{ r: 6, strokeWidth: 0 }}
             name={label}
-            animationDuration={1000}
+            isAnimationActive={false}
           />
         </LineChart>
       </ResponsiveContainer>

@@ -69,8 +69,8 @@ export default function StatsPage() {
         </p>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Overview - 2x2 en móvil, 4 columnas en desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <StatsCard
           title="Total Películas"
           value={global.totalMovies}
@@ -115,14 +115,14 @@ export default function StatsPage() {
 
         {/* Distribution Tab */}
         <TabsContent value="distribution" className="space-y-6">
-          <Card>
+          <Card className="select-none">
             <CardHeader>
               <CardTitle>Distribución de Puntuaciones</CardTitle>
               <CardDescription>
                 Comparación de cómo puntúa cada usuario
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="select-none">
               <DistributionChart
                 user1Distribution={global.user_1.distribution}
                 user2Distribution={global.user_2.distribution}
@@ -182,14 +182,14 @@ export default function StatsPage() {
 
         {/* Agreement Tab */}
         <TabsContent value="agreement" className="space-y-6">
-          <Card>
+          <Card className="select-none">
             <CardHeader>
               <CardTitle>Nivel de Acuerdo</CardTitle>
               <CardDescription>
                 Análisis de las diferencias en vuestras valoraciones
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="select-none">
               {computed.agreementStats && (
                 <AgreementChart
                   perfectAgreement={computed.agreementStats.perfectAgreement}
@@ -253,14 +253,14 @@ export default function StatsPage() {
 
         {/* Evolution Tab */}
         <TabsContent value="evolution" className="space-y-6">
-          <Card>
+          <Card className="select-none">
             <CardHeader>
               <CardTitle>Evolución del Promedio</CardTitle>
               <CardDescription>
                 Cómo ha variado vuestra valoración promedio con el tiempo
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="select-none">
               <EvolutionChart
                 data={computed.averageEvolution}
                 label="Promedio General"

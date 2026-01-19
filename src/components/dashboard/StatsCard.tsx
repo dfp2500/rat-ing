@@ -49,14 +49,28 @@ export function StatsCard({
       )}
       onClick={onClick}
     >
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-muted-foreground mb-1">
+      {/* Mobile: Diseño compacto */}
+      <CardContent className="p-3 sm:p-6">
+        <div className="flex items-center justify-between gap-2">
+          {/* Icono - Más pequeño en móvil */}
+          <div
+            className={cn(
+              'p-2 sm:p-3 rounded-lg bg-background/50 shrink-0',
+              iconStyles[variant]
+            )}
+          >
+            <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+          </div>
+          
+          {/* Info */}
+          <div className="flex-1 min-w-0 text-right sm:text-left">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-0.5 sm:mb-1">
               {title}
             </p>
-            <div className="flex items-baseline gap-2">
-              <h3 className="text-3xl font-bold tracking-tight">{value}</h3>
+            <div className="flex items-baseline gap-1 sm:gap-2 justify-end sm:justify-start">
+              <h3 className="text-xl sm:text-3xl font-bold tracking-tight">
+                {value}
+              </h3>
               {trend && (
                 <span
                   className={cn(
@@ -71,18 +85,10 @@ export function StatsCard({
               )}
             </div>
             {description && (
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate hidden sm:block">
                 {description}
               </p>
             )}
-          </div>
-          <div
-            className={cn(
-              'p-3 rounded-lg bg-background/50',
-              iconStyles[variant]
-            )}
-          >
-            <Icon className="h-5 w-5" />
           </div>
         </div>
       </CardContent>
