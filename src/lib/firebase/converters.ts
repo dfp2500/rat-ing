@@ -9,6 +9,7 @@ import {
 } from 'firebase/firestore';
 import { User } from '@/types/user';
 import { Movie } from '@/types/movie';
+import { Series } from '@/types/series';
 import { GlobalStats } from '@/types/stats';
 
 // Converter para Users - CORREGIDO
@@ -118,6 +119,75 @@ export const statsConverter: FirestoreDataConverter<GlobalStats> = {
       user_1: data.user_1,
       user_2: data.user_2,
       lastUpdated: data.lastUpdated,
+    };
+  },
+};
+
+export const seriesConverter: FirestoreDataConverter<Series> = {
+  toFirestore(series: WithFieldValue<Series>): DocumentData {
+    return {
+      tmdbId: series.tmdbId,
+      title: series.title,
+      originalTitle: series.originalTitle,
+      posterPath: series.posterPath ?? null,
+      backdropPath: series.backdropPath ?? null,
+      firstAirDate: series.firstAirDate,
+      lastAirDate: series.lastAirDate ?? null,
+      genres: series.genres,
+      overview: series.overview ?? null,
+      status: series.status,
+      watchStatus: series.watchStatus,
+      numberOfSeasons: series.numberOfSeasons,
+      numberOfEpisodes: series.numberOfEpisodes,
+      currentSeason: series.currentSeason ?? null,
+      currentEpisode: series.currentEpisode ?? null,
+      addedBy: series.addedBy,
+      startedWatchingDate: series.startedWatchingDate,
+      finishedWatchingDate: series.finishedWatchingDate ?? null,
+      createdAt: series.createdAt,
+      lastUpdated: series.lastUpdated,
+      ratings: series.ratings || {
+        user_1: null,
+        user_2: null,
+      },
+      averageScore: series.averageScore ?? null,
+      bothRated: series.bothRated,
+    };
+  },
+
+  fromFirestore(
+    snapshot: QueryDocumentSnapshot,
+    options: SnapshotOptions
+  ): Series {
+    const data = snapshot.data(options);
+    return {
+      id: snapshot.id,
+      tmdbId: data.tmdbId,
+      title: data.title,
+      originalTitle: data.originalTitle,
+      posterPath: data.posterPath ?? undefined,
+      backdropPath: data.backdropPath ?? undefined,
+      firstAirDate: data.firstAirDate,
+      lastAirDate: data.lastAirDate ?? undefined,
+      genres: data.genres || [],
+      overview: data.overview ?? undefined,
+      status: data.status,
+      watchStatus: data.watchStatus,
+      numberOfSeasons: data.numberOfSeasons,
+      numberOfEpisodes: data.numberOfEpisodes,
+      currentSeason: data.currentSeason ?? undefined,
+      currentEpisode: data.currentEpisode ?? undefined,
+      addedBy: data.addedBy,
+      startedWatchingDate: data.startedWatchingDate,
+      finishedWatchingDate: data.finishedWatchingDate ?? undefined,
+      createdAt: data.createdAt,
+      lastUpdated: data.lastUpdated,
+      ratings: {
+        user_1: data.ratings?.user_1 ?? undefined,
+        user_2: data.ratings?.user_2 ?? undefined,
+      },
+      averageScore: data.averageScore ?? undefined,
+      bothRated: data.bothRated || false,
     };
   },
 };

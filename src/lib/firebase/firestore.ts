@@ -15,15 +15,17 @@ import {
   DocumentReference,
 } from 'firebase/firestore';
 import { db } from './config';
-import { userConverter, movieConverter, statsConverter } from './converters';
+import { userConverter, movieConverter, seriesConverter, statsConverter } from './converters';
 import { User } from '@/types/user';
 import { Movie } from '@/types/movie';
+import { Series } from '@/types/series'; 
 import { GlobalStats } from '@/types/stats';
 
 // Collection names
 export const collections = {
   users: 'users',
   movies: 'movies',
+  series: 'series',
   stats: 'stats',
 } as const;
 
@@ -34,6 +36,10 @@ export function getUsersCollection(): CollectionReference<User> {
 
 export function getMoviesCollection(): CollectionReference<Movie> {
   return collection(db, collections.movies).withConverter(movieConverter);
+}
+
+export function getSeriesCollection(): CollectionReference<Series> {
+  return collection(db, collections.series).withConverter(seriesConverter);
 }
 
 export function getStatsCollection(): CollectionReference<GlobalStats> {
@@ -47,6 +53,10 @@ export function getUserDoc(userId: string): DocumentReference<User> {
 
 export function getMovieDoc(movieId: string): DocumentReference<Movie> {
   return doc(db, collections.movies, movieId).withConverter(movieConverter);
+}
+
+export function getSeriesDoc(seriesId: string): DocumentReference<Series> {
+  return doc(db, collections.series, seriesId).withConverter(seriesConverter);
 }
 
 export function getStatsDoc(statId: string = 'global'): DocumentReference<GlobalStats> {
