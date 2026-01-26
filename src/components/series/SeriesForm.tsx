@@ -38,15 +38,25 @@ export function SeriesForm({ series, onCancel }: SeriesFormProps) {
 
   // Estados del formulario
   const [startedWatchingDate, setStartedWatchingDate] = useState(new Date());
+  const [finishedWatchingDate, setFinishedWatchingDate] = useState(new Date());
   const [watchStatus, setWatchStatus] = useState<'watching' | 'completed' | 'dropped' | 'plan_to_watch'>('watching');
-  const [currentSeason, setCurrentSeason] = useState<number>(1);
-  const [currentEpisode, setCurrentEpisode] = useState<number>(1);
+  const [userSeason, setUserSeason] = useState<number>(1);
+  const [userEpisode, setUserEpisode] = useState<number>(1);
   const [rateNow, setRateNow] = useState(false);
   const [rating, setRating] = useState(7);
   const [comment, setComment] = useState<string>("");
 
   const posterUrl = getTMDBImageUrl(series.poster_path, 'w500');
   const year = series.first_air_date ? new Date(series.first_air_date).getFullYear() : '';
+
+  // ✨ DERIVAR el progreso según el estado (sin useEffect)
+  const currentSeason = watchStatus === 'completed' && seriesDetails
+    ? seriesDetails.number_of_seasons
+    : userSeason;
+  
+  const currentEpisode = watchStatus === 'completed' && seriesDetails
+    ? seriesDetails.number_of_episodes
+    : userEpisode;
 
   if (existingSeries && !checkingExists) {
     return (
@@ -108,10 +118,13 @@ export function SeriesForm({ series, onCancel }: SeriesFormProps) {
         watchStatus,
         numberOfSeasons: seriesDetails.number_of_seasons,
         numberOfEpisodes: seriesDetails.number_of_episodes,
-        currentSeason: watchStatus === 'watching' ? currentSeason : undefined,
-        currentEpisode: watchStatus === 'watching' ? currentEpisode : undefined,
+        // ✨ ACTUALIZADO: Incluir progreso según el estado
+        currentSeason: (watchStatus === 'watching' || watchStatus === 'dropped' || watchStatus === 'completed') ? currentSeason : undefined,
+        currentEpisode: (watchStatus === 'watching' || watchStatus === 'dropped' || watchStatus === 'completed') ? currentEpisode : undefined,
         addedBy: currentUser.id,
         startedWatchingDate,
+        // ✨ NUEVO: Incluir fecha de finalización si corresponde
+        finishedWatchingDate: (watchStatus === 'completed' || watchStatus === 'dropped') ? finishedWatchingDate : undefined,
         initialRating: rateNow
           ? {
               userRole: currentUser.role,
@@ -240,10 +253,6 @@ export function SeriesForm({ series, onCancel }: SeriesFormProps) {
                 value={watchStatus} 
                 onValueChange={(value: any) => {
                 setWatchStatus(value);
-                // ✨ Si cambia a pendiente, forzamos "Valorar después"
-                if (value === 'plan_to_watch') {
-                    setRateNow(false);
-                }
                 }}
             >
               <SelectTrigger>
@@ -258,32 +267,80 @@ export function SeriesForm({ series, onCancel }: SeriesFormProps) {
             </Select>
           </div>
 
-          {/* Progreso (solo si está "watching") */}
-          {watchStatus === 'watching' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="currentSeason">Temporada actual</Label>
-                <Input
-                  id="currentSeason"
-                  type="number"
-                  min="1"
-                  max={seriesDetails.number_of_seasons}
-                  value={currentSeason}
-                  onChange={(e) => setCurrentSeason(parseInt(e.target.value) || 1)}
-                  disabled={createSeries.isPending}
-                />
+          {/* ✨ NUEVO: Fecha de finalización (solo para completed/dropped) */}
+          {(watchStatus === 'completed' || watchStatus === 'dropped') && (
+            <>
+              <Separator />
+              <DatePicker
+                date={finishedWatchingDate}
+                onDateChange={setFinishedWatchingDate}
+                label={watchStatus === 'completed' ? 'Fecha de finalización' : 'Fecha de abandono'}
+                disabled={createSeries.isPending}
+              />
+            </>
+          )}
+
+          {/* ✨ ACTUALIZADO: Progreso (para watching y dropped) */}
+          {(watchStatus === 'watching' || watchStatus === 'dropped') && (
+            <>
+              <Separator />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="currentSeason">Temporada actual</Label>
+                  <Input
+                    id="currentSeason"
+                    type="number"
+                    min="1"
+                    max={seriesDetails.number_of_seasons}
+                    value={userSeason}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      setUserSeason(Math.max(1, Math.min(value, seriesDetails.number_of_seasons)));
+                    }}
+                    disabled={createSeries.isPending}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="currentEpisode">Episodio actual</Label>
+                  <Input
+                    id="currentEpisode"
+                    type="number"
+                    min="1"
+                    max={seriesDetails.number_of_episodes}
+                    value={userEpisode}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      setUserEpisode(Math.max(1, Math.min(value, seriesDetails.number_of_episodes)));
+                    }}
+                    disabled={createSeries.isPending}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="currentEpisode">Episodio actual</Label>
-                <Input
-                  id="currentEpisode"
-                  type="number"
-                  min="1"
-                  value={currentEpisode}
-                  onChange={(e) => setCurrentEpisode(parseInt(e.target.value) || 1)}
-                  disabled={createSeries.isPending}
-                />
-              </div>
+            </>
+          )}
+
+          {/* ✨ NUEVO: Mensajes informativos según el estado */}
+          {watchStatus === 'completed' && (
+            <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+              <p className="text-sm text-green-700 dark:text-green-400">
+                ✅ Se marcará automáticamente como {seriesDetails.number_of_seasons}/{seriesDetails.number_of_seasons} temporadas y {seriesDetails.number_of_episodes}/{seriesDetails.number_of_episodes} episodios completados
+              </p>
+            </div>
+          )}
+
+          {watchStatus === 'dropped' && (
+            <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+              <p className="text-sm text-orange-700 dark:text-orange-400">
+                ⏸️ Se guardará el progreso actual: Temporada {userSeason}, Episodio {userEpisode}
+              </p>
+            </div>
+          )}
+
+          {watchStatus === 'plan_to_watch' && (
+            <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              <p className="text-sm text-blue-700 dark:text-blue-400">
+                ℹ️ Las series pendientes no tienen progreso asociado hasta que comiences a verlas
+              </p>
             </div>
           )}
 
@@ -296,7 +353,6 @@ export function SeriesForm({ series, onCancel }: SeriesFormProps) {
             >
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="later">Valorar después</TabsTrigger>
-                {/* ✨ Solo mostramos/habilitamos "Valorar ahora" si NO está pendiente */}
                 <TabsTrigger 
                 value="now" 
                 disabled={watchStatus === 'plan_to_watch'}
@@ -319,7 +375,6 @@ export function SeriesForm({ series, onCancel }: SeriesFormProps) {
                 </div>
             </TabsContent>
 
-            {/* ✨ Este contenido solo será accesible si watchStatus != 'plan_to_watch' */}
             <TabsContent value="now" className="space-y-4 pt-4">
                 <RatingInput
                 value={rating}

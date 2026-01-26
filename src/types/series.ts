@@ -63,6 +63,7 @@ export interface CreateSeriesInput {
   numberOfEpisodes: number;
   addedBy: string;
   startedWatchingDate: Date | Timestamp;
+  finishedWatchingDate?: Date
   watchStatus: Series['watchStatus'];
   currentSeason?: number;
   currentEpisode?: number;
