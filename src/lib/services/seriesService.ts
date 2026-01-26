@@ -193,35 +193,74 @@ export class SeriesService {
   }
 
   /**
-   * Actualizar progreso de visualización
+   * ✨ ACTUALIZADO: Actualizar progreso de visualización con lógica mejorada
    */
   async updateProgress(data: UpdateSeriesProgressInput): Promise<Series> {
     const seriesDoc = getSeriesDoc(data.seriesId);
+    const snapshot = await getDoc(seriesDoc);
+    
+    if (!snapshot.exists()) {
+      throw new Error('Serie no encontrada');
+    }
+
+    const series = snapshot.data();
     
     const updateData: any = {
       lastUpdated: Timestamp.now(),
     };
 
-    if (data.currentSeason !== undefined) {
-      updateData.currentSeason = data.currentSeason;
-    }
-
-    if (data.currentEpisode !== undefined) {
-      updateData.currentEpisode = data.currentEpisode;
-    }
-
+    // Actualizar estado de visualización
     if (data.watchStatus !== undefined) {
       updateData.watchStatus = data.watchStatus;
+
+      // ✨ AUTO-COMPLETADO: Si marca como "completed", establecer progreso al máximo
+      if (data.watchStatus === 'completed') {
+        updateData.currentSeason = series.numberOfSeasons;
+        updateData.currentEpisode = series.numberOfEpisodes;
+        updateData.finishedWatchingDate = Timestamp.now();
+      }
+      // ✨ RESET: Si marca como "plan_to_watch", limpiar progreso
+      else if (data.watchStatus === 'plan_to_watch') {
+        updateData.currentSeason = null;
+        updateData.currentEpisode = null;
+        updateData.finishedWatchingDate = null;
+      }
+      // ✨ RESET: Si marca como "dropped", mantener el progreso actual pero marcar fecha
+      else if (data.watchStatus === 'dropped') {
+        updateData.finishedWatchingDate = Timestamp.now();
+      }
+      // Si vuelve a "watching", limpiar fecha de finalización
+      else if (data.watchStatus === 'watching') {
+        updateData.finishedWatchingDate = null;
+        // Solo actualizar si se proporcionan valores específicos
+        if (data.currentSeason !== undefined) {
+          // ✨ VALIDACIÓN: No permitir más de las temporadas disponibles
+          updateData.currentSeason = Math.min(data.currentSeason, series.numberOfSeasons);
+        }
+        if (data.currentEpisode !== undefined) {
+          // ✨ VALIDACIÓN: No permitir más de los episodios disponibles
+          updateData.currentEpisode = Math.min(data.currentEpisode, series.numberOfEpisodes);
+        }
+      }
+    } else {
+      // Si solo se actualiza progreso sin cambiar estado
+      if (data.currentSeason !== undefined) {
+        updateData.currentSeason = Math.min(data.currentSeason, series.numberOfSeasons);
+      }
+      if (data.currentEpisode !== undefined) {
+        updateData.currentEpisode = Math.min(data.currentEpisode, series.numberOfEpisodes);
+      }
     }
 
+    // Fecha de finalización manual (si se proporciona)
     if (data.finishedWatchingDate) {
       updateData.finishedWatchingDate = Timestamp.fromDate(data.finishedWatchingDate);
     }
 
     await updateDoc(seriesDoc, updateData);
 
-    const snapshot = await getDoc(seriesDoc);
-    return snapshot.data()!;
+    const updatedSnapshot = await getDoc(seriesDoc);
+    return updatedSnapshot.data()!;
   }
 
   /**
@@ -251,6 +290,26 @@ export class SeriesService {
     }
 
     await deleteDoc(seriesDoc);
+  }
+
+  /**
+   * Actualizar fecha comenzado a ver
+   */
+  async updateStartedWatchingDate(seriesId: string, watchingDate: Date): Promise<void> {
+    const seriesDoc = getSeriesDoc(seriesId);
+    await updateDoc(seriesDoc, {
+      startedWatchingDate: Timestamp.fromDate(watchingDate),
+    });
+  }
+
+  /**
+   * Actualizar fecha finalizado
+   */
+  async updateFinishedWatchingDate(seriesId: string, finishedDate: Date): Promise<void> {
+    const seriesDoc = getSeriesDoc(seriesId);
+    await updateDoc(seriesDoc, {
+      finishedWatchingDate: Timestamp.fromDate(finishedDate),
+    });
   }
 }
 

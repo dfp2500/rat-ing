@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { getTMDBImageUrl } from '@/types/tmdb';
 import { TMDBSeries } from '@/types/tmdb-series';
 import { useSeriesDetails } from '@/lib/hooks/useTMDBSeries';
-import { useCreateSeries } from '@/lib/hooks/useSeries';
+import { useCreateSeries, useSeriesExists } from '@/lib/hooks/useSeries';
 import { useCurrentUser } from '@/lib/hooks/useUser';
 import { normalizeTMDBStatus } from '@/types/tmdb-series';
-import { DatePicker } from '@/components/movies/DatePicker';
+import { DatePicker } from '@/components/shared/DatePicker';
 import { RatingInput } from '@/components/movies/RatingInput';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { StarIcon, CalendarIcon, CheckIcon, TvIcon, Loader2Icon } from 'lucide-react';
+import { StarIcon, CalendarIcon, CheckIcon, TvIcon, Loader2Icon, AlertCircleIcon } from 'lucide-react';
 import { getWatchStatusLabel } from '@/types/series';
 
 interface SeriesFormProps {
@@ -31,6 +31,8 @@ export function SeriesForm({ series, onCancel }: SeriesFormProps) {
   const { data: currentUser } = useCurrentUser();
   const createSeries = useCreateSeries();
   
+  const { data: existingSeries, isLoading: checkingExists } = useSeriesExists(series.id);
+
   // Obtener detalles completos de la serie
   const { data: seriesDetails, isLoading: detailsLoading } = useSeriesDetails(series.id);
 
@@ -45,6 +47,45 @@ export function SeriesForm({ series, onCancel }: SeriesFormProps) {
 
   const posterUrl = getTMDBImageUrl(series.poster_path, 'w500');
   const year = series.first_air_date ? new Date(series.first_air_date).getFullYear() : '';
+
+  if (existingSeries && !checkingExists) {
+    return (
+      <Card className="border-amber-500/50 bg-amber-500/5">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-full bg-amber-500/10">
+              <AlertCircleIcon className="h-6 w-6 text-amber-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                Esta serie ya existe
+              </h3>
+              <p className="text-sm text-amber-800/80 dark:text-amber-400/80 mb-4">
+                Ya has añadido &quot;{series.name}&quot; anteriormente. ¿Quieres ir a su página de detalle?
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => router.push(`/series/${existingSeries.id}`)} 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-amber-500/50 hover:bg-amber-500/10"
+                >
+                  Ver Serie
+                </Button>
+                <Button 
+                  onClick={onCancel} 
+                  variant="ghost" 
+                  size="sm"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleSubmit = async () => {
     if (!currentUser || !seriesDetails) {
@@ -195,7 +236,16 @@ export function SeriesForm({ series, onCancel }: SeriesFormProps) {
           {/* Estado de visualización */}
           <div className="space-y-2">
             <Label>Estado de visualización</Label>
-            <Select value={watchStatus} onValueChange={(value: any) => setWatchStatus(value)}>
+            <Select 
+                value={watchStatus} 
+                onValueChange={(value: any) => {
+                setWatchStatus(value);
+                // ✨ Si cambia a pendiente, forzamos "Valorar después"
+                if (value === 'plan_to_watch') {
+                    setRateNow(false);
+                }
+                }}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -240,36 +290,46 @@ export function SeriesForm({ series, onCancel }: SeriesFormProps) {
           <Separator />
 
           {/* Valoración */}
-          <Tabs
+            <Tabs
             value={rateNow ? 'now' : 'later'}
             onValueChange={(value) => setRateNow(value === 'now')}
-          >
+            >
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="later">Valorar después</TabsTrigger>
-              <TabsTrigger value="now">Valorar ahora</TabsTrigger>
+                <TabsTrigger value="later">Valorar después</TabsTrigger>
+                {/* ✨ Solo mostramos/habilitamos "Valorar ahora" si NO está pendiente */}
+                <TabsTrigger 
+                value="now" 
+                disabled={watchStatus === 'plan_to_watch'}
+                title={watchStatus === 'plan_to_watch' ? "No puedes valorar una serie pendiente" : ""}
+                >
+                Valorar ahora
+                </TabsTrigger>
             </TabsList>
 
             <TabsContent value="later" className="space-y-4 pt-4">
-              <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-muted-foreground">
                 <CheckIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p className="text-sm">
-                  La serie se añadirá sin valoración.
-                  <br />
-                  Podrás valorarla más tarde desde su página de detalle.
+                    {watchStatus === 'plan_to_watch' 
+                    ? 'Las series pendientes se añaden sin valoración.' 
+                    : 'La serie se añadirá sin valoración.'}
+                    <br />
+                    Podrás valorarla cuando empieces a verla.
                 </p>
-              </div>
+                </div>
             </TabsContent>
 
+            {/* ✨ Este contenido solo será accesible si watchStatus != 'plan_to_watch' */}
             <TabsContent value="now" className="space-y-4 pt-4">
-              <RatingInput
+                <RatingInput
                 value={rating}
                 onChange={setRating}
                 comment={comment}
                 onCommentChange={setComment}
                 disabled={createSeries.isPending}
-              />
+                />
             </TabsContent>
-          </Tabs>
+            </Tabs>
         </CardContent>
       </Card>
 

@@ -127,18 +127,6 @@ export function useUpdateSeriesProgress() {
 }
 
 /**
- * Hook para verificar si una serie existe
- */
-export function useSeriesExists(tmdbId: number | null) {
-  return useQuery({
-    queryKey: ['series', 'exists', tmdbId],
-    queryFn: () => seriesService.seriesExistsByTMDBId(tmdbId!),
-    enabled: !!tmdbId,
-    staleTime: 1 * 60 * 1000,
-  });
-}
-
-/**
  * Hook para eliminar una serie
  */
 export function useDeleteSeries() {
@@ -150,5 +138,25 @@ export function useDeleteSeries() {
       queryClient.invalidateQueries({ queryKey: ['series'] });
       queryClient.removeQueries({ queryKey: ['series', seriesId] });
     },
+  });
+}
+
+/**
+ * Hook para verificar si una serie existe
+ */
+export function useSeriesExists(tmdbId: number | null) {
+  return useQuery({
+    queryKey: ['series', 'exists', tmdbId],
+    queryFn: async () => {
+      if (!tmdbId) return null;
+      const exists = await seriesService.seriesExistsByTMDBId(tmdbId);
+      if (!exists) return null;
+      
+      // Si existe, obtener la serie completa
+      const allSeries = await seriesService.getAllSeries();
+      return allSeries.find(s => s.tmdbId === tmdbId) || null;
+    },
+    enabled: !!tmdbId,
+    staleTime: 1 * 60 * 1000,
   });
 }

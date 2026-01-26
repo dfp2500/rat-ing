@@ -106,7 +106,15 @@ export function useUpdateRating() {
 export function useMovieExists(tmdbId: number | null) {
   return useQuery({
     queryKey: ['movies', 'exists', tmdbId],
-    queryFn: () => movieService.movieExistsByTMDBId(tmdbId!),
+    queryFn: async () => {
+      if (!tmdbId) return null;
+      const exists = await movieService.movieExistsByTMDBId(tmdbId);
+      if (!exists) return null;
+      
+      // Si existe, obtener la serie completa
+      const allMovies = await movieService.getAllMovies();
+      return allMovies.find(s => s.tmdbId === tmdbId) || null;
+    },
     enabled: !!tmdbId,
     staleTime: 1 * 60 * 1000,
   });

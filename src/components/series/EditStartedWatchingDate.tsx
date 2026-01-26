@@ -6,17 +6,17 @@ import { DatePicker } from '../shared/DatePicker';
 import { EditIcon, CheckIcon, XIcon } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 
-interface EditWatchedDateProps {
+interface EditStartedWatchingDateProps {
   currentDate: Timestamp;
   onSave: (newDate: Date) => Promise<void>;
   disabled?: boolean;
 }
 
-export function EditWatchedDate({
+export function EditStartedWatchingDate({
   currentDate,
   onSave,
   disabled = false,
-}: EditWatchedDateProps) {
+}: EditStartedWatchingDateProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editDate, setEditDate] = useState(currentDate.toDate());
   const [isSaving, setIsSaving] = useState(false);

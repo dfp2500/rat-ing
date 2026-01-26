@@ -3,16 +3,16 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { TMDBMovie, getTMDBImageUrl } from '@/types/tmdb';
-import { useCreateMovie } from '@/lib/hooks/useMovies';
+import { useCreateMovie, useMovieExists } from '@/lib/hooks/useMovies';
 import { useCurrentUser } from '@/lib/hooks/useUser';
-import { DatePicker } from './DatePicker';
+import { DatePicker } from '../shared/DatePicker';
 import { RatingInput } from './RatingInput';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { StarIcon, CalendarIcon, CheckIcon } from 'lucide-react';
+import { StarIcon, CalendarIcon, CheckIcon, AlertCircleIcon } from 'lucide-react';
 
 interface MovieFormProps {
   movie: TMDBMovie;
@@ -24,6 +24,8 @@ export function MovieForm({ movie, onCancel }: MovieFormProps) {
   const { data: currentUser } = useCurrentUser();
   const createMovie = useCreateMovie();
 
+  const { data: existingMovies, isLoading: checkingExists } = useMovieExists(movie.id);
+
   // Estados del formulario
   const [watchedDate, setWatchedDate] = useState(new Date());
   const [rateNow, setRateNow] = useState(false);
@@ -32,6 +34,45 @@ export function MovieForm({ movie, onCancel }: MovieFormProps) {
 
   const posterUrl = getTMDBImageUrl(movie.poster_path, 'w500');
   const year = movie.release_date ? new Date(movie.release_date).getFullYear() : '';
+
+  if (existingMovies && !checkingExists) {
+    return (
+      <Card className="border-amber-500/50 bg-amber-500/5">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-full bg-amber-500/10">
+              <AlertCircleIcon className="h-6 w-6 text-amber-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                Esta película ya existe
+              </h3>
+              <p className="text-sm text-amber-800/80 dark:text-amber-400/80 mb-4">
+                Ya has añadido &quot;{movie.title}&quot; anteriormente. ¿Quieres ir a su página de detalle?
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => router.push(`/movies/${existingMovies.id}`)} 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-amber-500/50 hover:bg-amber-500/10"
+                >
+                  Ver Película
+                </Button>
+                <Button 
+                  onClick={onCancel} 
+                  variant="ghost" 
+                  size="sm"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleSubmit = async () => {
     if (!currentUser) {
