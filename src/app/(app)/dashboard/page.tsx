@@ -22,6 +22,7 @@ import {
   ArrowRightIcon,
   CheckCircleIcon,
   ActivityIcon,
+  HandPlatterIcon,
 } from 'lucide-react';
 import { useMemo } from 'react';
 import { Movie } from '@/types/movie';
@@ -216,7 +217,7 @@ export default function DashboardPage() {
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="recent">
                   <ActivityIcon className="h-4 w-4 mr-2" />
-                  Actividad Reciente
+                  Reciente
                 </TabsTrigger>
                 <TabsTrigger value="movies">
                   <FilmIcon className="h-4 w-4 mr-2" />
@@ -393,7 +394,7 @@ export default function DashboardPage() {
                 <CardTitle>Acciones Rápidas</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <Button
                     variant="outline"
                     className="h-24 flex-col gap-2"
@@ -423,6 +424,19 @@ export default function DashboardPage() {
                       PRÓXIMAMENTE
                     </span>
                   </Button>
+
+                  <Button
+                    variant="outline"
+                    className="h-24 flex-col gap-2 relative"
+                    disabled
+                  >
+                    <HandPlatterIcon className="h-6 w-6 text-purple-500 opacity-50" />
+                    <span className="text-sm font-semibold opacity-50">Restaurantes</span>
+                    <span className="absolute top-2 right-2 text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full font-medium">
+                      PRÓXIMAMENTE
+                    </span>
+                  </Button>
+
                 </div>
               </CardContent>
             </Card>
