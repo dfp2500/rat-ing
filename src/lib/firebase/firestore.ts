@@ -15,10 +15,11 @@ import {
   DocumentReference,
 } from 'firebase/firestore';
 import { db } from './config';
-import { userConverter, movieConverter, seriesConverter, statsConverter } from './converters';
+import { userConverter, movieConverter, seriesConverter, statsConverter, gameConverter } from './converters';
 import { User } from '@/types/user';
 import { Movie } from '@/types/movie';
 import { Series } from '@/types/series'; 
+import { Game } from '@/types/game';
 import { GlobalStats } from '@/types/stats';
 
 // Collection names
@@ -26,6 +27,7 @@ export const collections = {
   users: 'users',
   movies: 'movies',
   series: 'series',
+  games: 'games',
   stats: 'stats',
 } as const;
 
@@ -40,6 +42,10 @@ export function getMoviesCollection(): CollectionReference<Movie> {
 
 export function getSeriesCollection(): CollectionReference<Series> {
   return collection(db, collections.series).withConverter(seriesConverter);
+}
+
+export function getGamesCollection(): CollectionReference<Game> {
+  return collection(db, collections.games).withConverter(gameConverter);
 }
 
 export function getStatsCollection(): CollectionReference<GlobalStats> {
@@ -57,6 +63,10 @@ export function getMovieDoc(movieId: string): DocumentReference<Movie> {
 
 export function getSeriesDoc(seriesId: string): DocumentReference<Series> {
   return doc(db, collections.series, seriesId).withConverter(seriesConverter);
+}
+
+export function getGameDoc(gameId: string): DocumentReference<Game> {
+  return doc(db, collections.games, gameId).withConverter(gameConverter);
 }
 
 export function getStatsDoc(statId: string = 'global'): DocumentReference<GlobalStats> {

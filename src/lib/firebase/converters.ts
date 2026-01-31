@@ -10,6 +10,7 @@ import {
 import { User } from '@/types/user';
 import { Movie } from '@/types/movie';
 import { Series } from '@/types/series';
+import { Game } from '@/types/game';
 import { GlobalStats } from '@/types/stats';
 
 // Converter para Users - CORREGIDO
@@ -182,6 +183,59 @@ export const seriesConverter: FirestoreDataConverter<Series> = {
       finishedWatchingDate: data.finishedWatchingDate ?? undefined,
       createdAt: data.createdAt,
       lastUpdated: data.lastUpdated,
+      ratings: {
+        user_1: data.ratings?.user_1 ?? undefined,
+        user_2: data.ratings?.user_2 ?? undefined,
+      },
+      averageScore: data.averageScore ?? undefined,
+      bothRated: data.bothRated || false,
+    };
+  },
+};
+
+export const gameConverter: FirestoreDataConverter<Game> = {
+  toFirestore(game: WithFieldValue<Game>): DocumentData {
+    return {
+      rawgId: game.rawgId,
+      name: game.name,
+      slug: game.slug,
+      backgroundImage: game.backgroundImage ?? null,
+      released: game.released,
+      platforms: game.platforms || [],
+      genres: game.genres || [],
+      description: game.description ?? null,
+      metacritic: game.metacritic ?? null,
+      addedBy: game.addedBy,
+      playedDate: game.playedDate,
+      createdAt: game.createdAt,
+      ratings: game.ratings || {
+        user_1: null,
+        user_2: null,
+      },
+      averageScore: game.averageScore ?? null,
+      bothRated: game.bothRated,
+    };
+  },
+
+  fromFirestore(
+    snapshot: QueryDocumentSnapshot,
+    options: SnapshotOptions
+  ): Game {
+    const data = snapshot.data(options);
+    return {
+      id: snapshot.id,
+      rawgId: data.rawgId,
+      name: data.name,
+      slug: data.slug,
+      backgroundImage: data.backgroundImage ?? undefined,
+      released: data.released,
+      platforms: data.platforms || [],
+      genres: data.genres || [],
+      description: data.description ?? undefined,
+      metacritic: data.metacritic ?? undefined,
+      addedBy: data.addedBy,
+      playedDate: data.playedDate,
+      createdAt: data.createdAt,
       ratings: {
         user_1: data.ratings?.user_1 ?? undefined,
         user_2: data.ratings?.user_2 ?? undefined,
