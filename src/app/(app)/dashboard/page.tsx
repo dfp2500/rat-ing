@@ -2,318 +2,430 @@
 
 import { useRouter } from 'next/navigation';
 import { useMovies } from '@/lib/hooks/useMovies';
+import { useSeries } from '@/lib/hooks/useSeries';
 import { useCurrentUser } from '@/lib/hooks/useUser';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { CompactMovieCard } from '@/components/dashboard/CompactMovieCard';
+import { CompactSeriesCard } from '@/components/series/CompactSeriesCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   FilmIcon,
+  TvIcon,
+  GamepadIcon,
   StarIcon,
   TrendingUpIcon,
   ClockIcon,
   PlusIcon,
   ArrowRightIcon,
+  CheckCircleIcon,
+  ActivityIcon,
 } from 'lucide-react';
 import { useMemo } from 'react';
+import { Movie } from '@/types/movie';
+import { Series } from '@/types/series';
+
+// Tipo unificado para la actividad reciente
+type ActivityItem = {
+  id: string;
+  type: 'movie' | 'series';
+  title: string;
+  posterPath?: string;
+  date: number; // timestamp
+  averageScore?: number;
+  userHasRated: boolean;
+  data: Movie | Series;
+};
 
 export default function DashboardPage() {
   const router = useRouter();
   const { data: movies, isLoading: moviesLoading } = useMovies();
+  const { data: series, isLoading: seriesLoading } = useSeries();
   const { data: currentUser, isLoading: userLoading } = useCurrentUser();
 
-  // Calcular estadísticas
+  // Calcular estadísticas unificadas
   const stats = useMemo(() => {
-    if (!movies || !currentUser) {
+    if (!currentUser) {
       return {
-        total: 0,
-        averageScore: 0,
+        totalItems: 0,
+        totalMovies: 0,
+        totalSeries: 0,
+        overallAverage: 0,
         userAverage: 0,
-        pending: 0,
-        recentMovies: [],
-        pendingMovies: [],
+        totalPending: 0,
+        completionRate: 0,
+        recentActivity: [] as ActivityItem[],
+        pendingMovies: [] as Movie[],
+        pendingSeries: [] as Series[],
       };
     }
 
-    const total = movies.length;
-    
-    // Películas con valoración del usuario actual
-    const userRatedMovies = movies.filter(
+    const totalMovies = movies?.length || 0;
+    const totalSeries = series?.length || 0;
+    const totalItems = totalMovies + totalSeries;
+
+    // Películas con valoración del usuario
+    const userRatedMovies = movies?.filter(
       (m) => m.ratings[currentUser.role] !== undefined
-    );
+    ) || [];
+
+    // Series con valoración del usuario
+    const userRatedSeries = series?.filter(
+      (s) => s.ratings[currentUser.role] !== undefined
+    ) || [];
+
+    // Promedio del usuario (combinado)
+    const totalUserRatings = userRatedMovies.length + userRatedSeries.length;
+    const userAverage = totalUserRatings > 0
+      ? (
+          userRatedMovies.reduce((sum, m) => sum + (m.ratings[currentUser.role]?.score || 0), 0) +
+          userRatedSeries.reduce((sum, s) => sum + (s.ratings[currentUser.role]?.score || 0), 0)
+        ) / totalUserRatings
+      : 0;
+
+    // Promedio general
+    const moviesWithAverage = movies?.filter((m) => m.averageScore !== undefined) || [];
+    const seriesWithAverage = series?.filter((s) => s.averageScore !== undefined) || [];
+    const totalWithAverage = moviesWithAverage.length + seriesWithAverage.length;
     
-    // Promedio del usuario
-    const userAverage = userRatedMovies.length > 0
-      ? userRatedMovies.reduce(
-          (sum, m) => sum + (m.ratings[currentUser.role]?.score || 0),
-          0
-        ) / userRatedMovies.length
+    const overallAverage = totalWithAverage > 0
+      ? (
+          moviesWithAverage.reduce((sum, m) => sum + (m.averageScore || 0), 0) +
+          seriesWithAverage.reduce((sum, s) => sum + (s.averageScore || 0), 0)
+        ) / totalWithAverage
       : 0;
 
-    // Promedio general de todas las películas con rating completo
-    const moviesWithAverage = movies.filter((m) => m.averageScore !== undefined);
-    const averageScore = moviesWithAverage.length > 0
-      ? moviesWithAverage.reduce((sum, m) => sum + (m.averageScore || 0), 0) /
-        moviesWithAverage.length
-      : 0;
-
-    // Películas pendientes
-    const pendingMovies = movies.filter(
+    // Items pendientes
+    const pendingMovies = movies?.filter(
       (m) => m.ratings[currentUser.role] === undefined
-    );
+    ) || [];
+    
+    const pendingSeries = series?.filter(
+      (s) => s.ratings[currentUser.role] === undefined
+    ) || [];
+    
+    const totalPending = pendingMovies.length + pendingSeries.length;
 
-    // Últimas 5 películas
-    const recentMovies = [...movies]
-      .sort((a, b) => b.watchedDate.toMillis() - a.watchedDate.toMillis())
-      .slice(0, 5);
+    // Tasa de completitud
+    const completionRate = totalItems > 0 
+      ? ((totalUserRatings / totalItems) * 100) 
+      : 0;
+
+    // Actividad reciente (películas y series mezcladas)
+    const movieActivity: ActivityItem[] = (movies || []).map(m => ({
+      id: m.id,
+      type: 'movie' as const,
+      title: m.title,
+      posterPath: m.posterPath,
+      date: m.watchedDate.toMillis(),
+      averageScore: m.averageScore,
+      userHasRated: m.ratings[currentUser.role] !== undefined,
+      data: m,
+    }));
+
+    const seriesActivity: ActivityItem[] = (series || []).map(s => ({
+      id: s.id,
+      type: 'series' as const,
+      title: s.title,
+      posterPath: s.posterPath,
+      date: s.startedWatchingDate.toMillis(),
+      averageScore: s.averageScore,
+      userHasRated: s.ratings[currentUser.role] !== undefined,
+      data: s,
+    }));
+
+    const recentActivity = [...movieActivity, ...seriesActivity]
+      .sort((a, b) => b.date - a.date)
+      .slice(0, 8);
 
     return {
-      total,
-      averageScore,
+      totalItems,
+      totalMovies,
+      totalSeries,
+      overallAverage,
       userAverage,
-      pending: pendingMovies.length,
-      recentMovies,
+      totalPending,
+      completionRate,
+      recentActivity,
       pendingMovies: pendingMovies.slice(0, 3),
+      pendingSeries: pendingSeries.slice(0, 3),
     };
-  }, [movies, currentUser]);
+  }, [movies, series, currentUser]);
 
-  const isLoading = moviesLoading || userLoading;
+  const isLoading = moviesLoading || seriesLoading || userLoading;
 
   if (isLoading) {
     return <DashboardSkeleton />;
   }
 
-  const hasMovies = movies && movies.length > 0;
+  const hasContent = stats.totalItems > 0;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6">
-        {!hasMovies ? (
-          <EmptyDashboard onAddMovie={() => router.push('/movies/add')} />
+        {!hasContent ? (
+          <EmptyDashboard />
         ) : (
           <div className="space-y-8">
-            {/* Header con título y botón */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold">Dashboard</h1>
-                <p className="text-muted-foreground mt-1">
-                  Resumen de tu actividad
-                </p>
-              </div>
-              <Button onClick={() => router.push('/movies/add')} size="lg">
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Añadir Película
-              </Button>
+            {/* Header */}
+            <div>
+              <h1 className="text-3xl font-bold">Dashboard</h1>
+              <p className="text-muted-foreground mt-1">
+                Tu actividad completa en un vistazo
+              </p>
             </div>
-            {/* Stats Grid - 2x2 en móvil, 4 columnas en desktop */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+
+            {/* Stats Grid - Vista general */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatsCard
-                title="Total Películas"
-                value={stats.total}
-                icon={FilmIcon}
-                description="Películas vistas juntos"
-                onClick={() => router.push('/movies')}
+                title="Total Rateadas"
+                value={stats.totalItems}
+                icon={ActivityIcon}
+                description={`${stats.totalMovies} películas, ${stats.totalSeries} series`}
                 variant="primary"
               />
 
               <StatsCard
-                title="Promedio General"
-                value={stats.averageScore.toFixed(1)}
+                title="Promedio Pareja"
+                value={stats.overallAverage.toFixed(1)}
                 icon={StarIcon}
-                description="Media de valoraciones"
-                variant="default"
+                description="Media de todas tus valoraciones"
+                variant="success"
               />
 
               <StatsCard
                 title="Tu Promedio"
                 value={stats.userAverage.toFixed(1)}
                 icon={TrendingUpIcon}
-                description="Tu media de puntuaciones"
-                variant="success"
+                description={`De ${stats.totalItems} rateos`}
               />
 
               <StatsCard
                 title="Pendientes"
-                value={stats.pending}
+                value={stats.totalPending}
                 icon={ClockIcon}
                 description="Por valorar"
-                onClick={() => router.push('/movies?filter=pending')}
-                variant={stats.pending > 0 ? 'warning' : 'default'}
+                variant={stats.totalPending > 0 ? 'warning' : 'default'}
               />
             </div>
 
-            {/* Recent Movies */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Últimas Películas</CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+            {/* Tabs de contenido */}
+            <Tabs defaultValue="recent" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="recent">
+                  <ActivityIcon className="h-4 w-4 mr-2" />
+                  Actividad Reciente
+                </TabsTrigger>
+                <TabsTrigger value="movies">
+                  <FilmIcon className="h-4 w-4 mr-2" />
+                  Películas
+                </TabsTrigger>
+                <TabsTrigger value="series">
+                  <TvIcon className="h-4 w-4 mr-2" />
+                  Series
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Tab: Actividad Reciente */}
+              <TabsContent value="recent" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Actividad Reciente</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {stats.recentActivity.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        No hay actividad reciente
+                      </p>
+                    ) : (
+                      stats.recentActivity.map((item) => (
+                        <div key={`${item.type}-${item.id}`}>
+                          {item.type === 'movie' ? (
+                            <CompactMovieCard
+                              movie={item.data as Movie}
+                              currentUserRole={currentUser?.role}
+                              onClick={() => router.push(`/movies/${item.id}`)}
+                            />
+                          ) : (
+                            <CompactSeriesCard
+                              series={item.data as Series}
+                              currentUserRole={currentUser?.role}
+                              onClick={() => router.push(`/series/${item.id}`)}
+                            />
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Tab: Películas */}
+              <TabsContent value="movies" className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <StatsCard
+                    title="Películas"
+                    value={stats.totalMovies}
+                    icon={FilmIcon}
+                    description="Total vistas"
                     onClick={() => router.push('/movies')}
-                  >
-                    Ver todas
-                    <ArrowRightIcon className="h-4 w-4 ml-2" />
-                  </Button>
+                  />
+                  <StatsCard
+                    title="Promedio"
+                    value={
+                      movies && movies.length > 0
+                        ? (movies
+                            .filter(m => m.averageScore)
+                            .reduce((sum, m) => sum + (m.averageScore || 0), 0) / 
+                           movies.filter(m => m.averageScore).length
+                          ).toFixed(1)
+                        : '0.0'
+                    }
+                    icon={StarIcon}
+                    description="De películas"
+                  />
+                  <StatsCard
+                    title="Pendientes"
+                    value={stats.pendingMovies.length}
+                    icon={ClockIcon}
+                    description="Sin valorar"
+                    onClick={() => router.push('/movies?filter=pending')}
+                    variant={stats.pendingMovies.length > 0 ? 'warning' : 'default'}
+                  />
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {stats.recentMovies.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No hay películas recientes
-                  </p>
-                ) : (
-                  stats.recentMovies.map((movie) => (
-                    <CompactMovieCard
-                      key={movie.id}
-                      movie={movie}
-                      currentUserRole={currentUser?.role}
-                      onClick={() => router.push(`/movies/${movie.id}`)}
-                    />
-                  ))
-                )}
-              </CardContent>
-            </Card>
 
-            {/* Pending Movies */}
-            {stats.pending > 0 && (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      Pendientes de Valorar
-                      <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-medium">
-                        {stats.pending}
-                      </span>
-                    </CardTitle>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        router.push('/movies?filter=pending')
-                      }
-                    >
-                      Ver todas
-                      <ArrowRightIcon className="h-4 w-4 ml-2" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {stats.pendingMovies.map((movie) => (
-                    <CompactMovieCard
-                      key={movie.id}
-                      movie={movie}
-                      currentUserRole={currentUser?.role}
-                      onClick={() => router.push(`/movies/${movie.id}`)}
-                      showDate={false}
-                    />
-                  ))}
-                  {stats.pending > 3 && (
-                    <p className="text-xs text-muted-foreground text-center pt-2">
-                      Y {stats.pending - 3} más...
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+                {/* Últimas películas */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Últimas Películas</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.push('/movies')}
+                      >
+                        Ver todas
+                        <ArrowRightIcon className="h-4 w-4 ml-2" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {(movies || []).slice(0, 5).map((movie) => (
+                      <CompactMovieCard
+                        key={movie.id}
+                        movie={movie}
+                        currentUserRole={currentUser?.role}
+                        onClick={() => router.push(`/movies/${movie.id}`)}
+                      />
+                    ))}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-            {/* Quick Actions */}
+              {/* Tab: Series */}
+              <TabsContent value="series" className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <StatsCard
+                    title="Series"
+                    value={stats.totalSeries}
+                    icon={TvIcon}
+                    description="Total agregadas"
+                    onClick={() => router.push('/series')}
+                  />
+                  <StatsCard
+                    title="Promedio"
+                    value={
+                      series && series.length > 0
+                        ? (series
+                            .filter(s => s.averageScore)
+                            .reduce((sum, s) => sum + (s.averageScore || 0), 0) / 
+                           series.filter(s => s.averageScore).length
+                          ).toFixed(1)
+                        : '0.0'
+                    }
+                    icon={StarIcon}
+                    description="De series"
+                  />
+                  <StatsCard
+                    title="Pendientes"
+                    value={stats.pendingSeries.length}
+                    icon={ClockIcon}
+                    description="Sin valorar"
+                    onClick={() => router.push('/series?filter=pending')}
+                    variant={stats.pendingSeries.length > 0 ? 'warning' : 'default'}
+                  />
+                </div>
+
+                {/* Últimas series */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Últimas Series</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.push('/series')}
+                      >
+                        Ver todas
+                        <ArrowRightIcon className="h-4 w-4 ml-2" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {(series || []).slice(0, 5).map((s) => (
+                      <CompactSeriesCard
+                        key={s.id}
+                        series={s}
+                        currentUserRole={currentUser?.role}
+                        onClick={() => router.push(`/series/${s.id}`)}
+                      />
+                    ))}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+
+            {/* Acciones Rápidas */}
             <Card>
               <CardHeader>
                 <CardTitle>Acciones Rápidas</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <Button
                     variant="outline"
-                    className="justify-start h-auto py-4"
+                    className="h-24 flex-col gap-2"
                     onClick={() => router.push('/movies/add')}
                   >
-                    <PlusIcon className="h-5 w-5 mr-3" />
-                    <div className="text-left">
-                      <div className="font-semibold">Añadir Película</div>
-                      <div className="text-xs text-muted-foreground">
-                        Registra una nueva película vista
-                      </div>
-                    </div>
+                    <FilmIcon className="h-6 w-6 text-primary" />
+                    <span className="text-sm font-semibold">Añadir Película</span>
                   </Button>
 
                   <Button
                     variant="outline"
-                    className="justify-start h-auto py-4"
-                    onClick={() => router.push('/movies')}
+                    className="h-24 flex-col gap-2"
+                    onClick={() => router.push('/series/add')}
                   >
-                    <FilmIcon className="h-5 w-5 mr-3" />
-                    <div className="text-left">
-                      <div className="font-semibold">Ver Historial</div>
-                      <div className="text-xs text-muted-foreground">
-                        Explora todas las películas
-                      </div>
-                    </div>
+                    <TvIcon className="h-6 w-6 text-blue-500" />
+                    <span className="text-sm font-semibold">Añadir Serie</span>
                   </Button>
 
                   <Button
                     variant="outline"
-                    className="justify-start h-auto py-4"
-                    onClick={() => router.push('/movies?filter=pending')}
+                    className="h-24 flex-col gap-2 relative"
+                    disabled
                   >
-                    <ClockIcon className="h-5 w-5 mr-3" />
-                    <div className="text-left">
-                      <div className="font-semibold">Valorar Pendientes</div>
-                      <div className="text-xs text-muted-foreground">
-                        {stats.pending} películas sin valorar
-                      </div>
-                    </div>
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    className="justify-start h-auto py-4"
-                    onClick={() => router.push('/stats')}
-                  >
-                    <TrendingUpIcon className="h-5 w-5 mr-3" />
-                    <div className="text-left">
-                      <div className="font-semibold">Ver Estadísticas</div>
-                      <div className="text-xs text-muted-foreground">
-                        Análisis y gráficos detallados
-                      </div>
-                    </div>
+                    <GamepadIcon className="h-6 w-6 text-green-500 opacity-50" />
+                    <span className="text-sm font-semibold opacity-50">Videojuegos</span>
+                    <span className="absolute top-2 right-2 text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full font-medium">
+                      PRÓXIMAMENTE
+                    </span>
                   </Button>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Insights */}
-            {stats.total >= 5 && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 rounded-lg border bg-card text-center">
-                  <p className="text-2xl font-bold text-primary mb-1">
-                    {stats.total}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Películas juntos
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg border bg-card text-center">
-                  <p className="text-2xl font-bold text-primary mb-1">
-                    {((stats.total - stats.pending) / stats.total * 100).toFixed(0)}%
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Valoración completa
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg border bg-card text-center">
-                  <p className="text-2xl font-bold text-primary mb-1">
-                    {stats.averageScore >= 7 ? '😊' : stats.averageScore >= 5 ? '😐' : '😕'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Estado de ánimo
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -321,43 +433,60 @@ export default function DashboardPage() {
   );
 }
 
-function EmptyDashboard({ onAddMovie }: { onAddMovie: () => void }) {
-  return (
-    <div className="text-center py-12 max-w-2xl mx-auto">
-      <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
-        <FilmIcon className="h-10 w-10 text-primary" />
-      </div>
-      <h2 className="text-2xl font-bold mb-3">¡Bienvenido a Rat-Ing!</h2>
-      <p className="text-muted-foreground mb-8">
-        Comienza añadiendo la primera película que hayáis visto juntos.
-        Podrás valorarla, añadir comentarios y llevar un registro completo
-        de vuestras películas favoritas.
-      </p>
-      <Button onClick={onAddMovie} size="lg">
-        <PlusIcon className="h-5 w-5 mr-2" />
-        Añadir Primera Película
-      </Button>
+function EmptyDashboard() {
+  const router = useRouter();
 
-      <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
-        <div className="p-4 rounded-lg border">
-          <FilmIcon className="h-8 w-8 text-primary mb-3" />
-          <h3 className="font-semibold mb-1">Registra películas</h3>
-          <p className="text-xs text-muted-foreground">
-            Busca y añade películas desde TMDB con toda su información
+  return (
+    <div className="text-center py-12 max-w-3xl mx-auto">
+      <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center">
+        <ActivityIcon className="h-10 w-10 text-primary" />
+      </div>
+      <h2 className="text-3xl font-bold mb-3">¡Bienvenido a Rat-Ing!</h2>
+      <p className="text-muted-foreground mb-8 text-lg">
+        Empieza a registrar las películas, series y videojuegos que disfrutas.
+        <br />
+        Valora, comenta y compara opiniones.
+      </p>
+
+      <div className="flex gap-3 justify-center flex-wrap mb-12">
+        <Button onClick={() => router.push('/movies/add')} size="lg">
+          <FilmIcon className="h-5 w-5 mr-2" />
+          Añadir Película
+        </Button>
+        <Button onClick={() => router.push('/series/add')} size="lg" variant="outline">
+          <TvIcon className="h-5 w-5 mr-2" />
+          Añadir Serie
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left mt-12">
+        <div className="p-6 rounded-xl border bg-card hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+            <FilmIcon className="h-6 w-6 text-primary" />
+          </div>
+          <h3 className="font-semibold mb-2">Múltiples Categorías</h3>
+          <p className="text-sm text-muted-foreground">
+            Películas, series y próximamente videojuegos
           </p>
         </div>
-        <div className="p-4 rounded-lg border">
-          <StarIcon className="h-8 w-8 text-primary mb-3" />
-          <h3 className="font-semibold mb-1">Valora y comenta</h3>
-          <p className="text-xs text-muted-foreground">
-            Cada uno puede poner su nota y escribir comentarios
+
+        <div className="p-6 rounded-xl border bg-card hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4">
+            <StarIcon className="h-6 w-6 text-blue-500" />
+          </div>
+          <h3 className="font-semibold mb-2">Valora en Pareja</h3>
+          <p className="text-sm text-muted-foreground">
+            Cada uno da su puntuación y añade comentarios
           </p>
         </div>
-        <div className="p-4 rounded-lg border">
-          <TrendingUpIcon className="h-8 w-8 text-primary mb-3" />
-          <h3 className="font-semibold mb-1">Compara estadísticas</h3>
-          <p className="text-xs text-muted-foreground">
-            Ve promedios, diferencias y películas mejor valoradas
+
+        <div className="p-6 rounded-xl border bg-card hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center mb-4">
+            <TrendingUpIcon className="h-6 w-6 text-purple-500" />
+          </div>
+          <h3 className="font-semibold mb-2">Estadísticas Detalladas</h3>
+          <p className="text-sm text-muted-foreground">
+            Compara gustos, encuentra patrones y descubre tendencias
           </p>
         </div>
       </div>
@@ -368,18 +497,16 @@ function EmptyDashboard({ onAddMovie }: { onAddMovie: () => void }) {
 function DashboardSkeleton() {
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6">
-          <Skeleton className="h-9 w-48 mb-2" />
-          <Skeleton className="h-4 w-64" />
-        </div>
-      </div>
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {[...Array(4)].map((_, i) => (
+        <Skeleton className="h-9 w-48 mb-2" />
+        <Skeleton className="h-4 w-64 mb-8" />
+        
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          {[...Array(6)].map((_, i) => (
             <Skeleton key={i} className="h-32 rounded-lg" />
           ))}
         </div>
+        
         <Skeleton className="h-96 rounded-lg" />
       </div>
     </div>
