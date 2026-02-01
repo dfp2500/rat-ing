@@ -18,6 +18,9 @@ import {
   UsersIcon,
   TrophyIcon,
   AlertCircleIcon,
+  FilmIcon, // ← AÑADIR
+  TvIcon,   // ← AÑADIR
+  GamepadIcon, // ← AÑADIR
 } from 'lucide-react';
 import { getTMDBImageUrl } from '@/types/tmdb';
 import { getUserDisplayName } from '@/types/user';
@@ -31,13 +34,12 @@ import {
 import { useNormalizedItems } from '@/lib/hooks/useStats';
 import { cn } from '@/lib/utils';
 
-// ─── Available filters (extend here when adding games, restaurants, etc.) ──
-const FILTERS: { value: ContentFilter; label: string; emoji?: string }[] = [
-  { value: 'all',    label: 'Todo' },
-  { value: 'movie',  label: 'Películas', emoji: '🎬' },
-  { value: 'series', label: 'Series',    emoji: '📺' },
-  // Future: { value: 'game', label: 'Videojuegos', emoji: '🎮' },
-  // Future: { value: 'restaurant', label: 'Restaurantes', emoji: '🍽️' },
+// ─── Available filters ──────────────────────────────────────────────────────
+const FILTERS: { value: ContentFilter; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { value: 'all',    label: 'Todo',       icon: StarIcon },    // ← CAMBIAR
+  { value: 'movie',  label: 'Películas',  icon: FilmIcon },        // ← CAMBIAR
+  { value: 'series', label: 'Series',     icon: TvIcon },          // ← CAMBIAR
+  { value: 'game',   label: 'Juegos',     icon: GamepadIcon },    // ← CAMBIAR
 ];
 
 export default function StatsPage() {
@@ -49,9 +51,7 @@ export default function StatsPage() {
   const [contentFilter, setContentFilter] = useState<ContentFilter>('all');
   const stats = useComputedStats(contentFilter);
 
-  // ── Derive loading state: if we have no items at all AND hooks haven't settled ──
-  // (lightweight proxy – real loading is nearly instant since data comes from react-query cache)
-  const isLoading = false; // react-query handles this; page renders empty state if 0 items
+  const isLoading = false;
 
   // ── Hide filters that have zero items ──
   const availableFilters = useMemo(() => {
@@ -59,9 +59,6 @@ export default function StatsPage() {
     allItems.forEach((i) => { typeCounts[i.type] = (typeCounts[i.type] || 0) + 1; });
     return FILTERS.filter((f) => f.value === 'all' || (typeCounts[f.value] || 0) > 0);
   }, [allItems]);
-
-  // ── If selected filter no longer valid, reset to 'all' ──
-  // (safety net; in practice filters are hidden, not removed)
 
   const getUserName = (role: UserRole) => {
     if (!allUsers) return role === 'user_1' ? 'Usuario 1' : 'Usuario 2';
@@ -77,15 +74,14 @@ export default function StatsPage() {
           <AlertCircleIcon className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-2xl font-bold mb-2">Estadísticas no disponibles</h2>
           <p className="text-muted-foreground">
-            Añade películas o series para ver estadísticas detalladas
+            Añade películas, series o juegos para ver estadísticas detalladas
           </p>
         </div>
       </div>
     );
   }
 
-  // ── Filtered-empty state (e.g. user picks "Series" but there are none yet) ──
-  // (won't actually happen because we hide zero-count filters, but just in case)
+  // ── Filtered-empty state ──
   if (stats.totalItems === 0 && contentFilter !== 'all') {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -113,13 +109,14 @@ export default function StatsPage() {
         setContentFilter={setContentFilter}
       />
 
-      {/* Overview cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+      {/* Overview cards - Compactas en móvil */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <StatsCard
           title={contentFilter === 'all' ? 'Total Rateadas' : CONTENT_TYPE_CONFIG[contentFilter as ContentType]?.plural || 'Total'}
           value={stats.totalItems}
           icon={StarIcon}
           variant="primary"
+          compact
         />
         <StatsCard
           title="Promedio Pareja"
@@ -127,6 +124,7 @@ export default function StatsPage() {
           icon={TrendingUpIcon}
           description="Media de todas las valoraciones"
           variant="success"
+          compact
         />
         <StatsCard
           title="Tu Promedio"
@@ -137,18 +135,20 @@ export default function StatsPage() {
           }
           icon={TargetIcon}
           description={`${currentUser ? (currentUser.role === 'user_1' ? stats.user_1 : stats.user_2).totalRatings : 0} valoraciones`}
+          compact
         />
         <StatsCard
           title="Diferencia Media"
           value={stats.agreementStats?.averageDifference.toFixed(1) || '-'}
           icon={UsersIcon}
-          description="Entre ambos usuarios"
+          description="Entre ambos"
           variant={
             !stats.agreementStats ? 'default'
             : stats.agreementStats.averageDifference < 1.5 ? 'success'
             : stats.agreementStats.averageDifference < 2.5 ? 'warning'
             : 'default'
           }
+          compact
         />
       </div>
 
@@ -177,7 +177,6 @@ export default function StatsPage() {
             </CardContent>
           </Card>
 
-          {/* Per-user summary cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <UserSummaryCard label={getUserName('user_1')} data={stats.user_1} />
             <UserSummaryCard label={getUserName('user_2')} data={stats.user_2} />
@@ -207,7 +206,6 @@ export default function StatsPage() {
             </CardContent>
           </Card>
 
-          {/* Most controversial */}
           {stats.mostControversial.length > 0 && (
             <Card>
               <CardHeader>
@@ -247,7 +245,6 @@ export default function StatsPage() {
             </CardContent>
           </Card>
 
-          {/* Top rated */}
           {stats.topRated.length > 0 && (
             <Card>
               <CardHeader>
@@ -296,24 +293,26 @@ function StatsHeader({
         <p className="text-muted-foreground">Análisis completo de vuestras valoraciones</p>
       </div>
 
-      {/* Filter pills – only shown when more than one filter is available */}
       {availableFilters.length > 1 && (
         <div className="flex flex-wrap gap-2">
-          {availableFilters.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setContentFilter(f.value)}
-              className={cn(
-                'px-4 py-1.5 rounded-full text-sm font-medium transition-all border',
-                contentFilter === f.value
-                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                  : 'bg-card text-muted-foreground border-muted hover:border-primary/50 hover:text-foreground'
-              )}
-            >
-              {f.emoji && <span className="mr-1.5">{f.emoji}</span>}
-              {f.label}
-            </button>
-          ))}
+          {availableFilters.map((f) => {
+            const Icon = f.icon;
+            return (
+              <button
+                key={f.value}
+                onClick={() => setContentFilter(f.value)}
+                className={cn(
+                  'px-4 py-2 rounded-full text-sm font-medium transition-all border flex items-center gap-2',
+                  contentFilter === f.value
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                    : 'bg-card text-muted-foreground border-muted hover:border-primary/50 hover:text-foreground'
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {f.label}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
@@ -352,24 +351,39 @@ function UserSummaryCard({
   );
 }
 
-/** Badge that shows the content type (🎬 / 📺 / …) */
+/** Badge that shows the content type with icon */
 function TypeBadge({ type }: { type: ContentType }) {
   const cfg = CONTENT_TYPE_CONFIG[type];
+  const Icon = cfg.icon;
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">
-      {cfg.emoji} {cfg.label}
+      <Icon className="h-3 w-3" />
+      {cfg.label}
     </span>
   );
 }
 
-/** Route helper: movies → /movies/:id, series → /series/:id */
+/** Route helper */
 function getItemRoute(item: NormalizedStatsItem): string {
   switch (item.type) {
     case 'movie':  return `/movies/${item.id}`;
     case 'series': return `/series/${item.id}`;
-    // Future types get their own route here
+    case 'game':   return `/games/${item.id}`;
     default: return `/dashboard`;
   }
+}
+
+/** Helper para obtener URL de imagen según tipo */
+function getImageUrl(item: NormalizedStatsItem, size: string = 'w92'): string | null {
+  if (!item.posterPath) return null;
+  
+  // Para juegos (RAWG), la URL ya viene completa
+  if (item.type === 'game') {
+    return item.posterPath;
+  }
+  
+  // Para movies y series (TMDB), usar el helper
+  return getTMDBImageUrl(item.posterPath, size);
 }
 
 function ControversialRow({
@@ -381,7 +395,7 @@ function ControversialRow({
   difference: number;
   router: ReturnType<typeof useRouter>;
 }) {
-  const posterUrl = getTMDBImageUrl(item.posterPath, 'w92');
+  const posterUrl = getImageUrl(item); // ← USAR HELPER
 
   return (
     <div
@@ -421,7 +435,7 @@ function TopRatedRow({
   index: number;
   router: ReturnType<typeof useRouter>;
 }) {
-  const posterUrl = getTMDBImageUrl(item.posterPath, 'w92');
+  const posterUrl = getImageUrl(item); // ← USAR HELPER
 
   return (
     <div
@@ -460,7 +474,6 @@ function TopRatedRow({
   );
 }
 
-// ─── Utility ───────────────────────────────────────────────────────────────
 function getMostUsedScore(distribution: Record<string, number>): number {
   const entries = Object.entries(distribution);
   if (entries.length === 0) return 0;

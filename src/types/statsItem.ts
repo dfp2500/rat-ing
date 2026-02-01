@@ -3,15 +3,20 @@ import { Movie } from './movie';
 import { Series } from './series';
 import { Game } from './game';
 import { UserRole } from './user';
+import { LucideIcon, Film, Tv, Gamepad2 } from 'lucide-react'; // ← AÑADIR
 
 // ─── Content type identifiers ──────────────────────────────────────────────
 export type ContentType = 'movie' | 'series' | 'game';
 
 // ─── Labels & icons config ─────────────────────────────────────────────────
-export const CONTENT_TYPE_CONFIG: Record<ContentType, { label: string; emoji: string; plural: string }> = {
-  movie:  { label: 'Película',  emoji: '🎬', plural: 'Películas' },
-  series: { label: 'Serie',     emoji: '📺', plural: 'Series' },
-  game:   { label: 'Juego',     emoji: '🎮', plural: 'Juegos' },
+export const CONTENT_TYPE_CONFIG: Record<ContentType, { 
+  label: string; 
+  icon: LucideIcon; // ← CAMBIAR de emoji a icon
+  plural: string 
+}> = {
+  movie:  { label: 'Película', icon: Film,     plural: 'Películas' }, // ← CAMBIAR
+  series: { label: 'Serie',    icon: Tv,       plural: 'Series' },    // ← CAMBIAR
+  game:   { label: 'Juego',    icon: Gamepad2, plural: 'Juegos' },    // ← CAMBIAR
 };
 
 // ─── Normalized item ───────────────────────────────────────────────────────
@@ -66,7 +71,7 @@ export function gameToStatsItem(game: Game): NormalizedStatsItem {
     id: game.id,
     type: 'game',
     title: game.name,
-    posterPath: game.backgroundImage ?? null,
+    posterPath: game.backgroundImage ?? null, // ← CORRECTO: backgroundImage en vez de posterPath
     dateAdded: game.startedPlayingDate || game.playedDate,
     releaseYear: game.released ? String(new Date(game.released).getFullYear()) : '',
     ratings: game.ratings,

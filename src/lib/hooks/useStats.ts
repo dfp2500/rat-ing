@@ -4,12 +4,14 @@ import { getStatsDoc } from '../firebase/firestore';
 import { statsService } from '../services/statsService';
 import { useMovies } from './useMovies';
 import { useSeries } from './useSeries';
+import { useGames } from './useGames'; // ← AÑADIR
 import { GlobalStats } from '@/types/stats';
 import {
   NormalizedStatsItem,
   ContentFilter,
   movieToStatsItem,
   seriesToStatsItem,
+  gameToStatsItem, // ← AÑADIR
   filterByContentType,
 } from '@/types/statsItem';
 import { useMemo } from 'react';
@@ -47,19 +49,21 @@ export function useUpdateGlobalStats() {
 
 // ─── Normalized items pool ─────────────────────────────────────────────────
 /**
- * Merges movies + series (+ future types) into a single NormalizedStatsItem[].
+ * Merges movies + series + games into a single NormalizedStatsItem[].
  * Memoised so downstream hooks only recompute when source data changes.
  */
 export function useNormalizedItems() {
   const { data: movies } = useMovies();
   const { data: series } = useSeries();
+  const { data: games } = useGames(); // ← AÑADIR
 
   return useMemo(() => {
     const items: NormalizedStatsItem[] = [];
     if (movies) items.push(...movies.map(movieToStatsItem));
     if (series) items.push(...series.map(seriesToStatsItem));
+    if (games) items.push(...games.map(gameToStatsItem)); // ← AÑADIR
     return items;
-  }, [movies, series]);
+  }, [movies, series, games]); // ← AÑADIR games a dependencias
 }
 
 // ─── Core computed stats (content-type agnostic) ───────────────────────────
