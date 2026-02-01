@@ -1,229 +1,372 @@
-import { getDocs, doc, setDoc, Timestamp } from 'firebase/firestore';
-import { getMoviesCollection, getStatsDoc } from '../firebase/firestore';
-import { GlobalStats, UserStats, ScoreDistribution, createEmptyDistribution } from '@/types/stats';
+// src/lib/services/statsService.ts - VERSIÓN ACTUALIZADA
+
+import { getDocs, setDoc, Timestamp } from 'firebase/firestore';
+import { 
+  getMoviesCollection, 
+  getSeriesCollection, 
+  getGamesCollection,
+  getStatsDoc 
+} from '../firebase/firestore';
+import { 
+  GlobalStats, 
+  ContentTypeStats, 
+  UserStats, 
+  AgreementStats,
+  TopItem,
+  ControversialItem,
+  EvolutionPoint,
+  createEmptyDistribution,
+  createEmptyUserStats,
+  createEmptyContentTypeStats,
+  createEmptyAgreementStats,
+  createEmptyGlobalStats,
+} from '@/types/stats';
 import { Movie } from '@/types/movie';
+import { Series } from '@/types/series';
+import { Game } from '@/types/game';
 import { UserRole } from '@/types/user';
+
+// ─── Tipo unificado para procesamiento interno ────────────────────────────
+interface NormalizedItem {
+  id: string;
+  type: 'movie' | 'series' | 'game';
+  title: string;
+  posterPath: string | null;
+  dateAdded: Timestamp;
+  ratings: {
+    user_1?: { score: number; comment?: string };
+    user_2?: { score: number; comment?: string };
+  };
+  averageScore: number | undefined;
+  bothRated: boolean;
+}
 
 export class StatsService {
   /**
-   * Calcular todas las estadísticas desde cero
+   * 🔥 FUNCIÓN PRINCIPAL: Recalcular TODAS las estadísticas desde cero
    */
-  async calculateGlobalStats(): Promise<GlobalStats> {
-    const moviesCollection = getMoviesCollection();
-    const snapshot = await getDocs(moviesCollection);
-    const movies = snapshot.docs.map((doc) => doc.data());
+  async calculateAndSaveGlobalStats(): Promise<GlobalStats> {
+    // 1. Obtener todos los datos
+    const [movies, series, games] = await Promise.all([
+      this.fetchMovies(),
+      this.fetchSeries(),
+      this.fetchGames(),
+    ]);
 
-    // Stats de user_1
-    const user1Stats = this.calculateUserStats(movies, 'user_1');
-    
-    // Stats de user_2
-    const user2Stats = this.calculateUserStats(movies, 'user_2');
+    // 2. Normalizar para procesamiento uniforme
+    const allItems = this.normalizeItems(movies, series, games);
 
-    // Total de películas y promedio general
-    const moviesWithAverage = movies.filter((m) => m.averageScore !== undefined);
-    const totalMovies = movies.length;
-    const averageScore = moviesWithAverage.length > 0
-      ? moviesWithAverage.reduce((sum, m) => sum + (m.averageScore || 0), 0) / moviesWithAverage.length
-      : 0;
-
-    return {
-      totalMovies,
-      averageScore: Number(averageScore.toFixed(2)),
-      user_1: user1Stats,
-      user_2: user2Stats,
+    // 3. Calcular estadísticas
+    const stats: GlobalStats = {
+      totalItems: allItems.length,
+      averageScore: this.calcGlobalAverage(allItems),
+      
+      movies: this.calcContentTypeStats(movies, 'movie'),
+      series: this.calcContentTypeStats(series, 'series'),
+      games: this.calcContentTypeStats(games, 'game'),
+      
+      agreement: this.calcAgreementStats(allItems),
+      topRated: this.calcTopRated(allItems),
+      mostControversial: this.calcMostControversial(allItems),
+      averageEvolution: this.calcEvolution(allItems),
+      
       lastUpdated: Timestamp.now(),
     };
+
+    // 4. Guardar en Firestore
+    await this.saveGlobalStats(stats);
+
+    return stats;
   }
 
   /**
-   * Calcular estadísticas de un usuario específico
+   * Alias para compatibilidad con código existente
    */
-  private calculateUserStats(movies: Movie[], userRole: UserRole): UserStats {
-    const userMovies = movies.filter((m) => m.ratings[userRole] !== undefined);
-    
-    if (userMovies.length === 0) {
-      return {
-        totalRatings: 0,
-        averageScore: 0,
-        distribution: createEmptyDistribution(),
-      };
+  async updateGlobalStats(): Promise<GlobalStats> {
+    return this.calculateAndSaveGlobalStats();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // FETCH DATA
+  // ═══════════════════════════════════════════════════════════════════════
+
+  private async fetchMovies(): Promise<Movie[]> {
+    const snapshot = await getDocs(getMoviesCollection());
+    return snapshot.docs.map((d) => d.data());
+  }
+
+  private async fetchSeries(): Promise<Series[]> {
+    const snapshot = await getDocs(getSeriesCollection());
+    return snapshot.docs.map((d) => d.data());
+  }
+
+  private async fetchGames(): Promise<Game[]> {
+    const snapshot = await getDocs(getGamesCollection());
+    return snapshot.docs.map((d) => d.data());
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // NORMALIZACIÓN
+  // ═══════════════════════════════════════════════════════════════════════
+
+  private normalizeItems(
+    movies: Movie[], 
+    series: Series[], 
+    games: Game[]
+  ): NormalizedItem[] {
+    const items: NormalizedItem[] = [];
+
+    movies.forEach((m) => {
+      items.push({
+        id: m.id,
+        type: 'movie',
+        title: m.title,
+        posterPath: m.posterPath ?? null,
+        dateAdded: m.watchedDate,
+        ratings: m.ratings,
+        averageScore: m.averageScore,
+        bothRated: m.bothRated,
+      });
+    });
+
+    series.forEach((s) => {
+      items.push({
+        id: s.id,
+        type: 'series',
+        title: s.title,
+        posterPath: s.posterPath ?? null,
+        dateAdded: s.startedWatchingDate,
+        ratings: s.ratings,
+        averageScore: s.averageScore,
+        bothRated: s.bothRated,
+      });
+    });
+
+    games.forEach((g) => {
+      items.push({
+        id: g.id,
+        type: 'game',
+        title: g.name,
+        posterPath: g.backgroundImage ?? null,
+        dateAdded: g.startedPlayingDate || g.playedDate,
+        ratings: g.ratings,
+        averageScore: g.averageScore,
+        bothRated: g.bothRated,
+      });
+    });
+
+    return items;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CÁLCULOS PRINCIPALES
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Promedio global (de todos los items que tienen averageScore)
+   */
+  private calcGlobalAverage(items: NormalizedItem[]): number {
+    const withAvg = items.filter((i) => i.averageScore !== undefined);
+    if (withAvg.length === 0) return 0;
+    const sum = withAvg.reduce((s, i) => s + (i.averageScore || 0), 0);
+    return Number((sum / withAvg.length).toFixed(2));
+  }
+
+  /**
+   * Stats por tipo de contenido
+   */
+  private calcContentTypeStats(
+    items: (Movie | Series | Game)[],
+    type: 'movie' | 'series' | 'game'
+  ): ContentTypeStats {
+    if (items.length === 0) {
+      return createEmptyContentTypeStats();
     }
 
-    // Calcular promedio
-    const totalScore = userMovies.reduce(
-      (sum, m) => sum + (m.ratings[userRole]?.score || 0),
-      0
-    );
-    const averageScore = totalScore / userMovies.length;
+    const withAvg = items.filter((i) => i.averageScore !== undefined);
+    const averageScore = withAvg.length > 0
+      ? withAvg.reduce((s, i) => s + (i.averageScore || 0), 0) / withAvg.length
+      : 0;
 
-    // Calcular distribución
-    const distribution = createEmptyDistribution();
-    userMovies.forEach((movie) => {
-      const score = movie.ratings[userRole]?.score;
-      if (score) {
-        distribution[score as keyof ScoreDistribution]++;
+    // Normalizar items para calcular agreement
+    const normalizedItems: NormalizedItem[] = items.map((item) => {
+      if (type === 'movie') {
+        const m = item as Movie;
+        return {
+          id: m.id,
+          type: 'movie',
+          title: m.title,
+          posterPath: m.posterPath ?? null,
+          dateAdded: m.watchedDate,
+          ratings: m.ratings,
+          averageScore: m.averageScore,
+          bothRated: m.bothRated,
+        };
+      } else if (type === 'series') {
+        const s = item as Series;
+        return {
+          id: s.id,
+          type: 'series',
+          title: s.title,
+          posterPath: s.posterPath ?? null,
+          dateAdded: s.startedWatchingDate,
+          ratings: s.ratings,
+          averageScore: s.averageScore,
+          bothRated: s.bothRated,
+        };
+      } else {
+        const g = item as Game;
+        return {
+          id: g.id,
+          type: 'game',
+          title: g.name,
+          posterPath: g.backgroundImage ?? null,
+          dateAdded: g.startedPlayingDate || g.playedDate,
+          ratings: g.ratings,
+          averageScore: g.averageScore,
+          bothRated: g.bothRated,
+        };
       }
     });
 
     return {
-      totalRatings: userMovies.length,
+      total: items.length,
+      averageScore: Number(averageScore.toFixed(2)),
+      user_1: this.calcUserStatsForType(items, 'user_1'),
+      user_2: this.calcUserStatsForType(items, 'user_2'),
+      agreement: this.calcAgreementStats(normalizedItems),
+    };
+  }
+
+  /**
+   * Stats de un usuario para un tipo específico
+   */
+  private calcUserStatsForType(
+    items: (Movie | Series | Game)[],
+    role: UserRole
+  ): UserStats {
+    const rated = items.filter((i) => i.ratings[role] !== undefined);
+    
+    if (rated.length === 0) {
+      return createEmptyUserStats();
+    }
+
+    const totalScore = rated.reduce((s, i) => s + (i.ratings[role]?.score || 0), 0);
+    const averageScore = totalScore / rated.length;
+
+    const distribution = createEmptyDistribution();
+    rated.forEach((i) => {
+      const score = i.ratings[role]?.score;
+      if (score) {
+        distribution[score as keyof typeof distribution]++;
+      }
+    });
+
+    return {
+      totalRatings: rated.length,
       averageScore: Number(averageScore.toFixed(2)),
       distribution,
     };
   }
 
   /**
-   * Guardar estadísticas en Firestore
+   * Estadísticas de acuerdo/desacuerdo
    */
-  async saveGlobalStats(stats: GlobalStats): Promise<void> {
-    const statsDoc = getStatsDoc('global');
-    await setDoc(statsDoc, stats);
-  }
-
-  /**
-   * Recalcular y guardar estadísticas
-   */
-  async updateGlobalStats(): Promise<GlobalStats> {
-    const stats = await this.calculateGlobalStats();
-    await this.saveGlobalStats(stats);
-    return stats;
-  }
-
-  /**
-   * Calcular estadísticas de acuerdo/desacuerdo
-   */
-  async calculateAgreementStats(movies: Movie[]): Promise<{
-    totalBothRated: number;
-    perfectAgreement: number;
-    closeAgreement: number; // diff <= 1
-    moderateAgreement: number; // diff <= 2
-    disagreement: number; // diff > 2
-    averageDifference: number;
-  }> {
-    const bothRated = movies.filter((m) => m.bothRated);
+  private calcAgreementStats(items: NormalizedItem[]): AgreementStats {
+    const bothRated = items.filter((i) => i.bothRated);
     
     if (bothRated.length === 0) {
-      return {
-        totalBothRated: 0,
-        perfectAgreement: 0,
-        closeAgreement: 0,
-        moderateAgreement: 0,
-        disagreement: 0,
-        averageDifference: 0,
-      };
+      return createEmptyAgreementStats();
     }
 
-    let perfectAgreement = 0;
-    let closeAgreement = 0;
-    let moderateAgreement = 0;
-    let disagreement = 0;
-    let totalDifference = 0;
+    let perfect = 0, close = 0, moderate = 0, disagree = 0, totalDiff = 0;
 
-    bothRated.forEach((movie) => {
-      const score1 = movie.ratings.user_1?.score || 0;
-      const score2 = movie.ratings.user_2?.score || 0;
-      const diff = Math.abs(score1 - score2);
+    bothRated.forEach((i) => {
+      const s1 = i.ratings.user_1?.score || 0;
+      const s2 = i.ratings.user_2?.score || 0;
+      const diff = Math.abs(s1 - s2);
 
-      totalDifference += diff;
+      totalDiff += diff;
 
-      if (diff === 0) {
-        perfectAgreement++;
-      } else if (diff <= 1) {
-        closeAgreement++;
-      } else if (diff <= 2) {
-        moderateAgreement++;
-      } else {
-        disagreement++;
-      }
+      if (diff === 0) perfect++;
+      else if (diff <= 1) close++;
+      else if (diff <= 2) moderate++;
+      else disagree++;
     });
 
     return {
       totalBothRated: bothRated.length,
-      perfectAgreement,
-      closeAgreement,
-      moderateAgreement,
-      disagreement,
-      averageDifference: Number((totalDifference / bothRated.length).toFixed(2)),
+      perfectAgreement: perfect,
+      closeAgreement: close,
+      moderateAgreement: moderate,
+      disagreement: disagree,
+      averageDifference: Number((totalDiff / bothRated.length).toFixed(2)),
     };
   }
 
   /**
-   * Obtener películas mejor valoradas
+   * Top 10 mejor valorados
    */
-  getTopRatedMovies(movies: Movie[], limit: number = 10): Movie[] {
-    return movies
-      .filter((m) => m.averageScore !== undefined)
+  private calcTopRated(items: NormalizedItem[]): TopItem[] {
+    return items
+      .filter((i) => i.averageScore !== undefined)
       .sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0))
-      .slice(0, limit);
+      .slice(0, 10)
+      .map((i) => ({
+        id: i.id,
+        type: i.type,
+        title: i.title,
+        posterPath: i.posterPath,
+        averageScore: i.averageScore!,
+        user1Score: i.ratings.user_1?.score,
+        user2Score: i.ratings.user_2?.score,
+      }));
   }
 
   /**
-   * Obtener películas más controversiales
+   * Top 5 más controversiales
    */
-  getMostControversialMovies(movies: Movie[], limit: number = 10): Array<{
-    movie: Movie;
-    difference: number;
-  }> {
-    return movies
-      .filter((m) => m.bothRated)
-      .map((movie) => {
-        const score1 = movie.ratings.user_1?.score || 0;
-        const score2 = movie.ratings.user_2?.score || 0;
-        const difference = Math.abs(score1 - score2);
-        return { movie, difference };
+  private calcMostControversial(items: NormalizedItem[]): ControversialItem[] {
+    const bothRated = items.filter((i) => i.bothRated);
+
+    return bothRated
+      .map((i) => {
+        const s1 = i.ratings.user_1?.score || 0;
+        const s2 = i.ratings.user_2?.score || 0;
+        return {
+          id: i.id,
+          type: i.type,
+          title: i.title,
+          posterPath: i.posterPath,
+          difference: Math.abs(s1 - s2),
+          user1Score: s1,
+          user2Score: s2,
+        };
       })
       .sort((a, b) => b.difference - a.difference)
-      .slice(0, limit);
+      .slice(0, 5);
   }
 
   /**
-   * Calcular tendencias por mes
+   * Evolución temporal del promedio
    */
-  getMoviesByMonth(movies: Movie[]): Record<string, number> {
-    const byMonth: Record<string, number> = {};
-
-    movies.forEach((movie) => {
-      const date = movie.watchedDate.toDate();
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      byMonth[monthKey] = (byMonth[monthKey] || 0) + 1;
-    });
-
-    return byMonth;
-  }
-
-  /**
-   * Calcular evolución de promedios
-   */
-  getAverageEvolution(movies: Movie[], userRole?: UserRole): Array<{
-    month: string;
-    average: number;
-    count: number;
-  }> {
-    const sortedMovies = [...movies]
-      .filter((m) => {
-        if (userRole) {
-          return m.ratings[userRole] !== undefined;
-        }
-        return m.averageScore !== undefined;
-      })
-      .sort((a, b) => a.watchedDate.toMillis() - b.watchedDate.toMillis());
+  private calcEvolution(items: NormalizedItem[]): EvolutionPoint[] {
+    const sorted = [...items]
+      .filter((i) => i.averageScore !== undefined)
+      .sort((a, b) => a.dateAdded.toMillis() - b.dateAdded.toMillis());
 
     const byMonth: Record<string, { sum: number; count: number }> = {};
 
-    sortedMovies.forEach((movie) => {
-      const date = movie.watchedDate.toDate();
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    sorted.forEach((i) => {
+      const d = i.dateAdded.toDate();
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       
-      const score = userRole
-        ? (movie.ratings[userRole]?.score || 0)
-        : (movie.averageScore || 0);
-
-      if (!byMonth[monthKey]) {
-        byMonth[monthKey] = { sum: 0, count: 0 };
+      if (!byMonth[key]) {
+        byMonth[key] = { sum: 0, count: 0 };
       }
 
-      byMonth[monthKey].sum += score;
-      byMonth[monthKey].count++;
+      byMonth[key].sum += i.averageScore || 0;
+      byMonth[key].count++;
     });
 
     return Object.entries(byMonth)
@@ -233,6 +376,18 @@ export class StatsService {
         count: data.count,
       }))
       .sort((a, b) => a.month.localeCompare(b.month));
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PERSISTENCIA
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Guardar estadísticas en Firestore
+   */
+  private async saveGlobalStats(stats: GlobalStats): Promise<void> {
+    const statsDoc = getStatsDoc('global');
+    await setDoc(statsDoc, stats);
   }
 }
 

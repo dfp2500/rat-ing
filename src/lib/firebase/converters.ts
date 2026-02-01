@@ -98,13 +98,120 @@ export const movieConverter: FirestoreDataConverter<Movie> = {
   },
 };
 
+/**
+ * Converter para GlobalStats - VERSIÓN ACTUALIZADA
+ * Maneja la nueva estructura completa con movies, series, games
+ */
 export const statsConverter: FirestoreDataConverter<GlobalStats> = {
   toFirestore(stats: GlobalStats): DocumentData {
     return {
-      totalMovies: stats.totalMovies,
+      totalItems: stats.totalItems,
       averageScore: stats.averageScore,
-      user_1: stats.user_1,
-      user_2: stats.user_2,
+      
+      movies: {
+        total: stats.movies.total,
+        averageScore: stats.movies.averageScore,
+        user_1: {
+          totalRatings: stats.movies.user_1.totalRatings,
+          averageScore: stats.movies.user_1.averageScore,
+          distribution: stats.movies.user_1.distribution,
+        },
+        user_2: {
+          totalRatings: stats.movies.user_2.totalRatings,
+          averageScore: stats.movies.user_2.averageScore,
+          distribution: stats.movies.user_2.distribution,
+        },
+        agreement: {
+          totalBothRated: stats.movies.agreement.totalBothRated,
+          perfectAgreement: stats.movies.agreement.perfectAgreement,
+          closeAgreement: stats.movies.agreement.closeAgreement,
+          moderateAgreement: stats.movies.agreement.moderateAgreement,
+          disagreement: stats.movies.agreement.disagreement,
+          averageDifference: stats.movies.agreement.averageDifference,
+        },
+      },
+      
+      series: {
+        total: stats.series.total,
+        averageScore: stats.series.averageScore,
+        user_1: {
+          totalRatings: stats.series.user_1.totalRatings,
+          averageScore: stats.series.user_1.averageScore,
+          distribution: stats.series.user_1.distribution,
+        },
+        user_2: {
+          totalRatings: stats.series.user_2.totalRatings,
+          averageScore: stats.series.user_2.averageScore,
+          distribution: stats.series.user_2.distribution,
+        },
+        agreement: {
+          totalBothRated: stats.series.agreement.totalBothRated,
+          perfectAgreement: stats.series.agreement.perfectAgreement,
+          closeAgreement: stats.series.agreement.closeAgreement,
+          moderateAgreement: stats.series.agreement.moderateAgreement,
+          disagreement: stats.series.agreement.disagreement,
+          averageDifference: stats.series.agreement.averageDifference,
+        },
+      },
+      
+      games: {
+        total: stats.games.total,
+        averageScore: stats.games.averageScore,
+        user_1: {
+          totalRatings: stats.games.user_1.totalRatings,
+          averageScore: stats.games.user_1.averageScore,
+          distribution: stats.games.user_1.distribution,
+        },
+        user_2: {
+          totalRatings: stats.games.user_2.totalRatings,
+          averageScore: stats.games.user_2.averageScore,
+          distribution: stats.games.user_2.distribution,
+        },
+        agreement: {
+          totalBothRated: stats.games.agreement.totalBothRated,
+          perfectAgreement: stats.games.agreement.perfectAgreement,
+          closeAgreement: stats.games.agreement.closeAgreement,
+          moderateAgreement: stats.games.agreement.moderateAgreement,
+          disagreement: stats.games.agreement.disagreement,
+          averageDifference: stats.games.agreement.averageDifference,
+        },
+      },
+      
+      agreement: {
+        totalBothRated: stats.agreement.totalBothRated,
+        perfectAgreement: stats.agreement.perfectAgreement,
+        closeAgreement: stats.agreement.closeAgreement,
+        moderateAgreement: stats.agreement.moderateAgreement,
+        disagreement: stats.agreement.disagreement,
+        averageDifference: stats.agreement.averageDifference,
+      },
+      
+      topRated: stats.topRated.map(item => ({
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        posterPath: item.posterPath ?? null,
+        averageScore: item.averageScore,
+        user1Score: item.user1Score ?? null,
+        user2Score: item.user2Score ?? null,
+      })),
+      
+      mostControversial: stats.mostControversial.map(item => ({
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        posterPath: item.posterPath ?? null,
+        difference: item.difference,
+        user1Score: item.user1Score,
+        user2Score: item.user2Score,
+      })),
+      
+      averageEvolution: stats.averageEvolution.map(point => ({
+        month: point.month,
+        average: point.average,
+        count: point.count,
+      })),
+      
       lastUpdated: stats.lastUpdated,
     };
   },
@@ -114,11 +221,70 @@ export const statsConverter: FirestoreDataConverter<GlobalStats> = {
     options: SnapshotOptions
   ): GlobalStats {
     const data = snapshot.data(options);
+    
     return {
-      totalMovies: data.totalMovies || 0,
+      totalItems: data.totalItems || 0,
       averageScore: data.averageScore || 0,
-      user_1: data.user_1,
-      user_2: data.user_2,
+      
+      movies: data.movies || {
+        total: 0,
+        averageScore: 0,
+        user_1: { totalRatings: 0, averageScore: 0, distribution: {} },
+        user_2: { totalRatings: 0, averageScore: 0, distribution: {} },
+        agreement: { totalBothRated: 0, perfectAgreement: 0, closeAgreement: 0, moderateAgreement: 0, disagreement: 0, averageDifference: 0 },
+      },
+      
+      series: data.series || {
+        total: 0,
+        averageScore: 0,
+        user_1: { totalRatings: 0, averageScore: 0, distribution: {} },
+        user_2: { totalRatings: 0, averageScore: 0, distribution: {} },
+        agreement: { totalBothRated: 0, perfectAgreement: 0, closeAgreement: 0, moderateAgreement: 0, disagreement: 0, averageDifference: 0 },
+      },
+      
+      games: data.games || {
+        total: 0,
+        averageScore: 0,
+        user_1: { totalRatings: 0, averageScore: 0, distribution: {} },
+        user_2: { totalRatings: 0, averageScore: 0, distribution: {} },
+        agreement: { totalBothRated: 0, perfectAgreement: 0, closeAgreement: 0, moderateAgreement: 0, disagreement: 0, averageDifference: 0 },
+      },
+      
+      agreement: data.agreement || {
+        totalBothRated: 0,
+        perfectAgreement: 0,
+        closeAgreement: 0,
+        moderateAgreement: 0,
+        disagreement: 0,
+        averageDifference: 0,
+      },
+      
+      topRated: (data.topRated || []).map((item: any) => ({
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        posterPath: item.posterPath ?? undefined,
+        averageScore: item.averageScore,
+        user1Score: item.user1Score ?? undefined,
+        user2Score: item.user2Score ?? undefined,
+      })),
+      
+      mostControversial: (data.mostControversial || []).map((item: any) => ({
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        posterPath: item.posterPath ?? undefined,
+        difference: item.difference,
+        user1Score: item.user1Score,
+        user2Score: item.user2Score,
+      })),
+      
+      averageEvolution: (data.averageEvolution || []).map((point: any) => ({
+        month: point.month,
+        average: point.average,
+        count: point.count,
+      })),
+      
       lastUpdated: data.lastUpdated,
     };
   },

@@ -1,10 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useMovies } from '@/lib/hooks/useMovies';
-import { useSeries } from '@/lib/hooks/useSeries';
-import { useGames } from '@/lib/hooks/useGames';
 import { useCurrentUser } from '@/lib/hooks/useUser';
+import { useGlobalStats } from '@/lib/hooks/useStats';
+import { useDashboardData } from '@/lib/hooks/useDashboard';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { CompactMovieCard } from '@/components/dashboard/CompactMovieCard';
 import { CompactSeriesCard } from '@/components/series/CompactSeriesCard';
@@ -20,181 +19,42 @@ import {
   StarIcon,
   TrendingUpIcon,
   ClockIcon,
-  PlusIcon,
   ArrowRightIcon,
-  CheckCircleIcon,
   ActivityIcon,
   HandPlatterIcon,
 } from 'lucide-react';
-import { useMemo } from 'react';
 import { Movie } from '@/types/movie';
 import { Series } from '@/types/series';
 import { Game } from '@/types/game';
 
-// Tipo unificado para la actividad reciente
-type ActivityItem = {
-  id: string;
-  type: 'movie' | 'series' | 'game';
-  title: string;
-  posterPath?: string; // Aquí guardaremos tanto posterPath como backgroundImage
-  date: number;
-  averageScore?: number;
-  userHasRated: boolean;
-  data: Movie | Series | Game;
-};
-
 export default function DashboardPage() {
   const router = useRouter();
-  const { data: movies, isLoading: moviesLoading } = useMovies();
-  const { data: series, isLoading: seriesLoading } = useSeries();
-  const { data: games, isLoading: gamesLoading } = useGames();
   const { data: currentUser, isLoading: userLoading } = useCurrentUser();
+  const { data: globalStats, isLoading: statsLoading } = useGlobalStats();
+  const { recentActivity, pending, latest, isLoading: dashboardLoading } = useDashboardData(currentUser?.role);
 
-  // Calcular estadísticas unificadas
-  const stats = useMemo(() => {
-    if (!currentUser) {
-      return {
-        totalItems: 0,
-        totalMovies: 0,
-        totalSeries: 0,
-        totalGames: 0,
-        overallAverage: 0,
-        userAverage: 0,
-        totalPending: 0,
-        completionRate: 0,
-        recentActivity: [] as ActivityItem[],
-        pendingMovies: [] as Movie[],
-        pendingSeries: [] as Series[],
-        pendingGames: [] as Game[],
-      };
-    }
-
-    const totalMovies = movies?.length || 0;
-    const totalSeries = series?.length || 0;
-    const totalGames = games?.length || 0;
-    const totalItems = totalMovies + totalSeries + totalGames;
-
-    // Películas con valoración del usuario
-    const userRatedMovies = movies?.filter(
-      (m) => m.ratings[currentUser.role] !== undefined
-    ) || [];
-
-    // Series con valoración del usuario
-    const userRatedSeries = series?.filter(
-      (s) => s.ratings[currentUser.role] !== undefined
-    ) || [];
-
-    // Juegos con valoración del usuario
-    const userRatedGames = games?.filter(
-      (m) => m.ratings[currentUser.role] !== undefined
-    ) || [];
-
-    // Promedio del usuario (combinado)
-    const totalUserRatings = userRatedMovies.length + userRatedSeries.length + userRatedGames.length;
-    const userAverage = totalUserRatings > 0
-      ? (
-          userRatedMovies.reduce((sum, m) => sum + (m.ratings[currentUser.role]?.score || 0), 0) +
-          userRatedSeries.reduce((sum, s) => sum + (s.ratings[currentUser.role]?.score || 0), 0) +
-          userRatedGames.reduce((sum, s) => sum + (s.ratings[currentUser.role]?.score || 0), 0)
-        ) / totalUserRatings
-      : 0;
-
-    // Promedio general
-    const moviesWithAverage = movies?.filter((m) => m.averageScore !== undefined) || [];
-    const seriesWithAverage = series?.filter((s) => s.averageScore !== undefined) || [];
-    const gamesWithAverage = games?.filter((s) => s.averageScore !== undefined) || [];
-    const totalWithAverage = moviesWithAverage.length + seriesWithAverage.length + gamesWithAverage.length;
-    
-    const overallAverage = totalWithAverage > 0
-      ? (
-          moviesWithAverage.reduce((sum, m) => sum + (m.averageScore || 0), 0) +
-          seriesWithAverage.reduce((sum, s) => sum + (s.averageScore || 0), 0) +
-          gamesWithAverage.reduce((sum, s) => sum + (s.averageScore || 0), 0)
-        ) / totalWithAverage
-      : 0;
-
-    // Items pendientes
-    const pendingMovies = movies?.filter(
-      (m) => m.ratings[currentUser.role] === undefined
-    ) || [];
-    
-    const pendingSeries = series?.filter(
-      (s) => s.ratings[currentUser.role] === undefined
-    ) || [];
-
-    const pendingGames = games?.filter(
-      (s) => s.ratings[currentUser.role] === undefined
-    ) || [];
-    
-    const totalPending = pendingMovies.length + pendingSeries.length + pendingGames.length;
-
-    // Tasa de completitud
-    const completionRate = totalItems > 0 
-      ? ((totalUserRatings / totalItems) * 100) 
-      : 0;
-
-    // Actividad reciente (películas y series mezcladas)
-    const movieActivity: ActivityItem[] = (movies || []).map(m => ({
-      id: m.id,
-      type: 'movie' as const,
-      title: m.title,
-      posterPath: m.posterPath,
-      date: m.watchedDate.toMillis(),
-      averageScore: m.averageScore,
-      userHasRated: m.ratings[currentUser.role] !== undefined,
-      data: m,
-    }));
-
-    const seriesActivity: ActivityItem[] = (series || []).map(s => ({
-      id: s.id,
-      type: 'series' as const,
-      title: s.title,
-      posterPath: s.posterPath,
-      date: s.startedWatchingDate.toMillis(),
-      averageScore: s.averageScore,
-      userHasRated: s.ratings[currentUser.role] !== undefined,
-      data: s,
-    }));
-
-    const gameActivity: ActivityItem[] = (games || []).map(g => ({
-      id: g.id,
-      type: 'game' as const,
-      title: g.name, // En Game es 'name', no 'title'
-      posterPath: g.backgroundImage, // En Game es 'backgroundImage', no 'posterPath'
-      // Usamos startedPlayingDate para la cronología de actividad
-      date: g.startedPlayingDate?.toMillis() || g.createdAt.toMillis(), 
-      averageScore: g.averageScore,
-      userHasRated: !!(currentUser && g.ratings[currentUser.role]),
-      data: g,
-    }));
-
-    const recentActivity = [...movieActivity, ...seriesActivity, ...gameActivity]
-      .sort((a, b) => b.date - a.date)
-      .slice(0, 8);
-
-    return {
-      totalItems,
-      totalMovies,
-      totalSeries,
-      totalGames,
-      overallAverage,
-      userAverage,
-      totalPending,
-      completionRate,
-      recentActivity,
-      pendingMovies: pendingMovies.slice(0, 3),
-      pendingSeries: pendingSeries.slice(0, 3),
-      pendingGames: pendingGames.slice(0, 3),
-    };
-  }, [movies, series, games, currentUser]);
-
-  const isLoading = moviesLoading || seriesLoading || gamesLoading || userLoading;
+  const isLoading = userLoading || statsLoading || dashboardLoading;
 
   if (isLoading) {
     return <DashboardSkeleton />;
   }
 
-  const hasContent = stats.totalItems > 0;
+  const hasContent = globalStats ? globalStats.totalItems > 0 : false;
+
+  // Obtener stats del usuario actual desde globalStats
+  const currentUserStats = currentUser && globalStats
+    ? (currentUser.role === 'user_1' ? {
+        totalRatings: globalStats.movies.user_1.totalRatings + 
+                      globalStats.series.user_1.totalRatings + 
+                      globalStats.games.user_1.totalRatings,
+        averageScore: globalStats.averageScore,
+      } : {
+        totalRatings: globalStats.movies.user_2.totalRatings + 
+                      globalStats.series.user_2.totalRatings + 
+                      globalStats.games.user_2.totalRatings,
+        averageScore: globalStats.averageScore,
+      })
+    : { totalRatings: 0, averageScore: 0 };
 
   return (
     <div className="min-h-screen bg-background">
@@ -208,41 +68,41 @@ export default function DashboardPage() {
             <div className="grid grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-4">
               <StatsCard
                 title="Total Rateadas"
-                value={stats.totalItems}
+                value={globalStats?.totalItems || 0}
                 icon={ActivityIcon}
-                description={`${stats.totalMovies} películas, ${stats.totalSeries} series, ${stats.totalGames} juegos`}
+                description={`${globalStats?.movies.total || 0} películas, ${globalStats?.series.total || 0} series, ${globalStats?.games.total || 0} juegos`}
                 variant="primary"
-                compact // ← Activar modo compacto
+                compact
               />
 
               <StatsCard
                 title="Promedio Pareja"
-                value={stats.overallAverage.toFixed(1)}
+                value={(globalStats?.averageScore || 0).toFixed(1)}
                 icon={StarIcon}
-                description="Media de todas tus valoraciones"
+                description="Media de todas las valoraciones"
                 variant="success"
-                compact // ← Activar modo compacto
+                compact
               />
 
               <StatsCard
                 title="Tu Promedio"
-                value={stats.userAverage.toFixed(1)}
+                value={currentUserStats.averageScore.toFixed(1)}
                 icon={TrendingUpIcon}
-                description={`De ${stats.totalItems} rateos`}
-                compact // ← Activar modo compacto
+                description={`De ${currentUserStats.totalRatings} rateos`}
+                compact
               />
 
               <StatsCard
                 title="Pendientes"
-                value={stats.totalPending}
+                value={pending.total}
                 icon={ClockIcon}
                 description="Por valorar"
-                variant={stats.totalPending > 0 ? 'warning' : 'default'}
-                compact // ← Activar modo compacto
+                variant={pending.total > 0 ? 'warning' : 'default'}
+                compact
               />
             </div>
 
-            {/* Tabs de contenido - Ancho completo con scroll si es necesario */}
+            {/* Tabs de contenido */}
             <Tabs defaultValue="recent" className="space-y-6">
               <div className="w-full overflow-x-auto scrollbar-hide">
                 <TabsList className="w-full grid grid-cols-4 min-w-full">
@@ -272,22 +132,21 @@ export default function DashboardPage() {
                     <CardTitle>Actividad Reciente</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {stats.recentActivity.length === 0 ? (
+                    {recentActivity.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-8">
                         No hay actividad reciente
                       </p>
                     ) : (
-                      stats.recentActivity.map((item) => (
-                        <div key={`${item.type}-${item.id}`}>
+                      recentActivity.map((item) => (
+                        <div key={`${item.type}-${item.data.id}`}>
                           {(() => {
-                            // Usamos una función autoinvocada para manejar múltiples tipos
                             switch (item.type) {
                               case 'movie':
                                 return (
                                   <CompactMovieCard
                                     movie={item.data as Movie}
                                     currentUserRole={currentUser?.role}
-                                    onClick={() => router.push(`/movies/${item.id}`)}
+                                    onClick={() => router.push(`/movies/${item.data.id}`)}
                                   />
                                 );
                               case 'series':
@@ -295,7 +154,7 @@ export default function DashboardPage() {
                                   <CompactSeriesCard
                                     series={item.data as Series}
                                     currentUserRole={currentUser?.role}
-                                    onClick={() => router.push(`/series/${item.id}`)}
+                                    onClick={() => router.push(`/series/${item.data.id}`)}
                                   />
                                 );
                               case 'game':
@@ -303,7 +162,7 @@ export default function DashboardPage() {
                                   <CompactGameCard
                                     game={item.data as Game}
                                     currentUserRole={currentUser?.role}
-                                    onClick={() => router.push(`/games/${item.id}`)}
+                                    onClick={() => router.push(`/games/${item.data.id}`)}
                                   />
                                 );
                               default:
@@ -322,35 +181,27 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   <StatsCard
                     title="Películas"
-                    value={stats.totalMovies}
+                    value={globalStats?.movies.total || 0}
                     icon={FilmIcon}
                     description="Total vistas"
                     onClick={() => router.push('/movies')}
-                    compact // ← MODO COMPACTO
+                    compact
                   />
                   <StatsCard
                     title="Promedio"
-                    value={
-                      movies && movies.length > 0
-                        ? (movies
-                            .filter(m => m.averageScore)
-                            .reduce((sum, m) => sum + (m.averageScore || 0), 0) / 
-                          movies.filter(m => m.averageScore).length
-                          ).toFixed(1)
-                        : '0.0'
-                    }
+                    value={(globalStats?.movies.averageScore || 0).toFixed(1)}
                     icon={StarIcon}
                     description="De películas"
-                    compact // ← MODO COMPACTO
+                    compact
                   />
                   <StatsCard
                     title="Pendientes"
-                    value={stats.pendingMovies.length}
+                    value={pending.movies.length}
                     icon={ClockIcon}
                     description="Sin valorar"
                     onClick={() => router.push('/movies?filter=pending')}
-                    variant={stats.pendingMovies.length > 0 ? 'warning' : 'default'}
-                    compact // ← MODO COMPACTO
+                    variant={pending.movies.length > 0 ? 'warning' : 'default'}
+                    compact
                   />
                 </div>
 
@@ -370,14 +221,20 @@ export default function DashboardPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {(movies || []).slice(0, 5).map((movie) => (
-                      <CompactMovieCard
-                        key={movie.id}
-                        movie={movie}
-                        currentUserRole={currentUser?.role}
-                        onClick={() => router.push(`/movies/${movie.id}`)}
-                      />
-                    ))}
+                    {latest.movies.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        No hay películas todavía
+                      </p>
+                    ) : (
+                      latest.movies.map((movie) => (
+                        <CompactMovieCard
+                          key={movie.id}
+                          movie={movie}
+                          currentUserRole={currentUser?.role}
+                          onClick={() => router.push(`/movies/${movie.id}`)}
+                        />
+                      ))
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -387,35 +244,27 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   <StatsCard
                     title="Series"
-                    value={stats.totalSeries}
+                    value={globalStats?.series.total || 0}
                     icon={TvIcon}
                     description="Total agregadas"
                     onClick={() => router.push('/series')}
-                    compact // ← MODO COMPACTO
+                    compact
                   />
                   <StatsCard
                     title="Promedio"
-                    value={
-                      series && series.length > 0
-                        ? (series
-                            .filter(s => s.averageScore)
-                            .reduce((sum, s) => sum + (s.averageScore || 0), 0) / 
-                          series.filter(s => s.averageScore).length
-                          ).toFixed(1)
-                        : '0.0'
-                    }
+                    value={(globalStats?.series.averageScore || 0).toFixed(1)}
                     icon={StarIcon}
                     description="De series"
-                    compact // ← MODO COMPACTO
+                    compact
                   />
                   <StatsCard
                     title="Pendientes"
-                    value={stats.pendingSeries.length}
+                    value={pending.series.length}
                     icon={ClockIcon}
                     description="Sin valorar"
                     onClick={() => router.push('/series?filter=pending')}
-                    variant={stats.pendingSeries.length > 0 ? 'warning' : 'default'}
-                    compact // ← MODO COMPACTO
+                    variant={pending.series.length > 0 ? 'warning' : 'default'}
+                    compact
                   />
                 </div>
 
@@ -435,14 +284,20 @@ export default function DashboardPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {(series || []).slice(0, 5).map((s) => (
-                      <CompactSeriesCard
-                        key={s.id}
-                        series={s}
-                        currentUserRole={currentUser?.role}
-                        onClick={() => router.push(`/series/${s.id}`)}
-                      />
-                    ))}
+                    {latest.series.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        No hay series todavía
+                      </p>
+                    ) : (
+                      latest.series.map((s) => (
+                        <CompactSeriesCard
+                          key={s.id}
+                          series={s}
+                          currentUserRole={currentUser?.role}
+                          onClick={() => router.push(`/series/${s.id}`)}
+                        />
+                      ))
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -452,35 +307,27 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   <StatsCard
                     title="Juegos"
-                    value={stats.totalGames}
+                    value={globalStats?.games.total || 0}
                     icon={GamepadIcon}
                     description="Total jugados"
                     onClick={() => router.push('/games')}
-                    compact // ← MODO COMPACTO
+                    compact
                   />
                   <StatsCard
                     title="Promedio"
-                    value={
-                      games && games.length > 0
-                        ? (games
-                            .filter(s => s.averageScore)
-                            .reduce((sum, s) => sum + (s.averageScore || 0), 0) / 
-                          games.filter(s => s.averageScore).length
-                          ).toFixed(1)
-                        : '0.0'
-                    }
+                    value={(globalStats?.games.averageScore || 0).toFixed(1)}
                     icon={StarIcon}
                     description="De juegos"
-                    compact // ← MODO COMPACTO
+                    compact
                   />
                   <StatsCard
                     title="Pendientes"
-                    value={stats.pendingGames.length}
+                    value={pending.games.length}
                     icon={ClockIcon}
                     description="Sin valorar"
                     onClick={() => router.push('/games?filter=pending')}
-                    variant={stats.pendingGames.length > 0 ? 'warning' : 'default'}
-                    compact // ← MODO COMPACTO
+                    variant={pending.games.length > 0 ? 'warning' : 'default'}
+                    compact
                   />
                 </div>
 
@@ -500,14 +347,20 @@ export default function DashboardPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {(games || []).slice(0, 5).map((game) => (
-                      <CompactGameCard
-                        key={game.id}
-                        game={game}
-                        currentUserRole={currentUser?.role}
-                        onClick={() => router.push(`/games/${game.id}`)}
-                      />
-                    ))}
+                    {latest.games.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        No hay juegos todavía
+                      </p>
+                    ) : (
+                      latest.games.map((game) => (
+                        <CompactGameCard
+                          key={game.id}
+                          game={game}
+                          currentUserRole={currentUser?.role}
+                          onClick={() => router.push(`/games/${game.id}`)}
+                        />
+                      ))
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -558,7 +411,6 @@ export default function DashboardPage() {
                       PRÓXIMAMENTE
                     </span>
                   </Button>
-
                 </div>
               </CardContent>
             </Card>
@@ -594,7 +446,7 @@ function EmptyDashboard() {
           Añadir Serie
         </Button>
         <Button onClick={() => router.push('/games/add')} size="lg" variant="outline">
-          <TvIcon className="h-5 w-5 mr-2" />
+          <GamepadIcon className="h-5 w-5 mr-2" />
           Añadir Juego
         </Button>
       </div>

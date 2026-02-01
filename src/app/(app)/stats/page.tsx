@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useComputedStats } from '@/lib/hooks/useStats';
+import { useGlobalStats } from '@/lib/hooks/useStats';
 import { useCurrentUser, useAllUsers } from '@/lib/hooks/useUser';
+import { ContentTypeStats } from '@/types/stats';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { DistributionChart } from '@/components/stats/DistributionChart';
 import { AgreementChart } from '@/components/stats/AgreementChart';
@@ -18,47 +19,34 @@ import {
   UsersIcon,
   TrophyIcon,
   AlertCircleIcon,
-  FilmIcon, // ← AÑADIR
-  TvIcon,   // ← AÑADIR
-  GamepadIcon, // ← AÑADIR
+  FilmIcon,
+  TvIcon,
+  GamepadIcon,
 } from 'lucide-react';
 import { getTMDBImageUrl } from '@/types/tmdb';
 import { getUserDisplayName } from '@/types/user';
 import { UserRole } from '@/types/user';
-import {
-  ContentFilter,
-  ContentType,
-  CONTENT_TYPE_CONFIG,
-  NormalizedStatsItem,
-} from '@/types/statsItem';
-import { useNormalizedItems } from '@/lib/hooks/useStats';
 import { cn } from '@/lib/utils';
 
 // ─── Available filters ──────────────────────────────────────────────────────
-const FILTERS: { value: ContentFilter; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { value: 'all',    label: 'Todo',       icon: StarIcon },    // ← CAMBIAR
-  { value: 'movie',  label: 'Películas',  icon: FilmIcon },        // ← CAMBIAR
-  { value: 'series', label: 'Series',     icon: TvIcon },          // ← CAMBIAR
-  { value: 'game',   label: 'Juegos',     icon: GamepadIcon },    // ← CAMBIAR
+const FILTERS: { 
+  value: 'all' | 'movies' | 'series' | 'games'; 
+  label: string; 
+  icon: React.ComponentType<{ className?: string }> 
+}[] = [
+  { value: 'all',    label: 'Todo',       icon: StarIcon },
+  { value: 'movies', label: 'Películas',  icon: FilmIcon },
+  { value: 'series', label: 'Series',     icon: TvIcon },
+  { value: 'games',  label: 'Juegos',     icon: GamepadIcon },
 ];
 
 export default function StatsPage() {
   const router = useRouter();
   const { data: currentUser } = useCurrentUser();
   const { data: allUsers } = useAllUsers();
-  const allItems = useNormalizedItems();
+  const { data: globalStats, isLoading } = useGlobalStats();
 
-  const [contentFilter, setContentFilter] = useState<ContentFilter>('all');
-  const stats = useComputedStats(contentFilter);
-
-  const isLoading = false;
-
-  // ── Hide filters that have zero items ──
-  const availableFilters = useMemo(() => {
-    const typeCounts: Record<string, number> = {};
-    allItems.forEach((i) => { typeCounts[i.type] = (typeCounts[i.type] || 0) + 1; });
-    return FILTERS.filter((f) => f.value === 'all' || (typeCounts[f.value] || 0) > 0);
-  }, [allItems]);
+  const [contentFilter, setContentFilter] = useState<'all' | 'movies' | 'series' | 'games'>('all');
 
   const getUserName = (role: UserRole) => {
     if (!allUsers) return role === 'user_1' ? 'Usuario 1' : 'Usuario 2';
@@ -66,8 +54,31 @@ export default function StatsPage() {
     return user ? getUserDisplayName(user) : role === 'user_1' ? 'Usuario 1' : 'Usuario 2';
   };
 
+  // ── Calcular diferencia media según filtro activo ──
+  const averageDifference = !globalStats ? 0 : (
+    contentFilter === 'all'
+      ? globalStats.agreement.averageDifference
+      : (globalStats[contentFilter] as ContentTypeStats).agreement.averageDifference
+  );
+
+  // ── Loading state ──
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <Skeleton className="h-9 w-48 mb-2" />
+        <Skeleton className="h-4 w-64 mb-8" />
+        <div className="grid grid-cols-4 gap-4 mb-8">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-lg" />
+          ))}
+        </div>
+        <Skeleton className="h-96 rounded-lg" />
+      </div>
+    );
+  }
+
   // ── Empty state ──
-  if (allItems.length === 0) {
+  if (!globalStats || globalStats.totalItems === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-center py-12">
@@ -81,46 +92,99 @@ export default function StatsPage() {
     );
   }
 
-  // ── Filtered-empty state ──
-  if (stats.totalItems === 0 && contentFilter !== 'all') {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <StatsHeader
-          availableFilters={availableFilters}
-          contentFilter={contentFilter}
-          setContentFilter={setContentFilter}
-        />
-        <div className="text-center py-16">
-          <AlertCircleIcon className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">
-            No hay datos para este filtro todavía
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // ── Determinar qué stats mostrar según filtro ──
+  const activeStats: { 
+    total: number; 
+    averageScore: number; 
+    user_1: { totalRatings: number; averageScore: number; distribution: any }; 
+    user_2: { totalRatings: number; averageScore: number; distribution: any }; 
+  } = contentFilter === 'all' 
+    ? {
+        total: globalStats.totalItems,
+        averageScore: globalStats.averageScore,
+        user_1: {
+          // Para "all", sumamos los totales de cada tipo
+          totalRatings: globalStats.movies.user_1.totalRatings + 
+                        globalStats.series.user_1.totalRatings + 
+                        globalStats.games.user_1.totalRatings,
+          // Promedio ponderado o simplemente el global
+          averageScore: globalStats.averageScore,
+          distribution: globalStats.movies.user_1.distribution, // Simplificado
+        },
+        user_2: {
+          totalRatings: globalStats.movies.user_2.totalRatings + 
+                        globalStats.series.user_2.totalRatings + 
+                        globalStats.games.user_2.totalRatings,
+          averageScore: globalStats.averageScore,
+          distribution: globalStats.movies.user_2.distribution, // Simplificado
+        },
+      }
+    : globalStats[contentFilter];
+
+  const currentUserStats = currentUser?.role === 'user_1' 
+    ? activeStats.user_1 
+    : activeStats.user_2;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
       {/* Header + filter pills */}
-      <StatsHeader
-        availableFilters={availableFilters}
-        contentFilter={contentFilter}
-        setContentFilter={setContentFilter}
-      />
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-3xl font-bold mb-1">Estadísticas</h1>
+          <p className="text-muted-foreground">Análisis completo de vuestras valoraciones</p>
+        </div>
 
-      {/* Overview cards - Compactas en móvil */}
+        <div className="w-full overflow-x-auto scrollbar-hide">
+          <div 
+            className="p-1 bg-muted rounded-lg grid grid-cols-4 w-full gap-1"
+            style={{ minWidth: "400px" }}
+          >
+            {FILTERS.map((f) => {
+              const Icon = f.icon;
+              const isActive = contentFilter === f.value;
+              
+              // Ocultar filtro si total es 0
+              const hasItems = f.value === 'all' 
+                ? globalStats.totalItems > 0 
+                : (globalStats[f.value] as ContentTypeStats).total > 0;
+              
+              if (!hasItems && f.value !== 'all') return null;
+              
+              return (
+                <button
+                  key={f.value}
+                  onClick={() => setContentFilter(f.value)}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 text-xs sm:text-sm font-medium transition-all rounded-md whitespace-nowrap",
+                    isActive
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
+                  )}
+                >
+                  <Icon className={cn(
+                    "h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0",
+                    isActive ? "text-[#db6468]" : "text-muted-foreground"
+                  )} />
+                  <span className="truncate">{f.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Overview cards */}
       <div className="grid grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-4">
         <StatsCard
-          title={contentFilter === 'all' ? 'Total Rateadas' : CONTENT_TYPE_CONFIG[contentFilter as ContentType]?.plural || 'Total'}
-          value={stats.totalItems}
+          title={contentFilter === 'all' ? 'Total Rateadas' : FILTERS.find(f => f.value === contentFilter)?.label || 'Total'}
+          value={activeStats.total}
           icon={StarIcon}
           variant="primary"
           compact
         />
         <StatsCard
           title="Promedio Pareja"
-          value={stats.averageScore.toFixed(1)}
+          value={activeStats.averageScore.toFixed(1)}
           icon={TrendingUpIcon}
           description="Media de todas las valoraciones"
           variant="success"
@@ -128,24 +192,19 @@ export default function StatsPage() {
         />
         <StatsCard
           title="Tu Promedio"
-          value={
-            currentUser
-              ? (currentUser.role === 'user_1' ? stats.user_1 : stats.user_2).averageScore.toFixed(1)
-              : '-'
-          }
+          value={currentUserStats?.averageScore.toFixed(1) || '-'}
           icon={TargetIcon}
-          description={`${currentUser ? (currentUser.role === 'user_1' ? stats.user_1 : stats.user_2).totalRatings : 0} valoraciones`}
+          description={`${currentUserStats?.totalRatings || 0} valoraciones`}
           compact
         />
         <StatsCard
           title="Diferencia Media"
-          value={stats.agreementStats?.averageDifference.toFixed(1) || '-'}
+          value={averageDifference.toFixed(1)}
           icon={UsersIcon}
           description="Entre ambos"
           variant={
-            !stats.agreementStats ? 'default'
-            : stats.agreementStats.averageDifference < 1.5 ? 'success'
-            : stats.agreementStats.averageDifference < 2.5 ? 'warning'
+            averageDifference < 1.5 ? 'success'
+            : averageDifference < 2.5 ? 'warning'
             : 'default'
           }
           compact
@@ -169,8 +228,8 @@ export default function StatsPage() {
             </CardHeader>
             <CardContent className="select-none">
               <DistributionChart
-                user1Distribution={stats.user_1.distribution}
-                user2Distribution={stats.user_2.distribution}
+                user1Distribution={activeStats.user_1.distribution}
+                user2Distribution={activeStats.user_2.distribution}
                 user1Label={getUserName('user_1')}
                 user2Label={getUserName('user_2')}
               />
@@ -178,8 +237,14 @@ export default function StatsPage() {
           </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <UserSummaryCard label={getUserName('user_1')} data={stats.user_1} />
-            <UserSummaryCard label={getUserName('user_2')} data={stats.user_2} />
+            <UserSummaryCard 
+              label={getUserName('user_1')} 
+              data={activeStats.user_1} 
+            />
+            <UserSummaryCard 
+              label={getUserName('user_2')} 
+              data={activeStats.user_2} 
+            />
           </div>
         </TabsContent>
 
@@ -191,22 +256,16 @@ export default function StatsPage() {
               <CardDescription>Análisis de las diferencias en vuestras valoraciones</CardDescription>
             </CardHeader>
             <CardContent className="select-none">
-              {stats.agreementStats ? (
-                <AgreementChart
-                  perfectAgreement={stats.agreementStats.perfectAgreement}
-                  closeAgreement={stats.agreementStats.closeAgreement}
-                  moderateAgreement={stats.agreementStats.moderateAgreement}
-                  disagreement={stats.agreementStats.disagreement}
-                />
-              ) : (
-                <p className="text-center text-sm text-muted-foreground py-8">
-                  Necesitas que ambos valoren al menos un elemento para ver el acuerdo
-                </p>
-              )}
+              <AgreementChart
+                perfectAgreement={globalStats.agreement.perfectAgreement}
+                closeAgreement={globalStats.agreement.closeAgreement}
+                moderateAgreement={globalStats.agreement.moderateAgreement}
+                disagreement={globalStats.agreement.disagreement}
+              />
             </CardContent>
           </Card>
 
-          {stats.mostControversial.length > 0 && (
+          {globalStats.mostControversial.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -217,11 +276,10 @@ export default function StatsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {stats.mostControversial.map(({ item, difference }) => (
+                  {globalStats.mostControversial.map((item) => (
                     <ControversialRow
                       key={`${item.type}-${item.id}`}
                       item={item}
-                      difference={difference}
                       router={router}
                     />
                   ))}
@@ -241,11 +299,14 @@ export default function StatsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="select-none">
-              <EvolutionChart data={stats.averageEvolution} label="Promedio General" />
+              <EvolutionChart 
+                data={globalStats.averageEvolution} 
+                label="Promedio General" 
+              />
             </CardContent>
           </Card>
 
-          {stats.topRated.length > 0 && (
+          {globalStats.topRated.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -255,7 +316,7 @@ export default function StatsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {stats.topRated.map((item, index) => (
+                  {globalStats.topRated.map((item, index) => (
                     <TopRatedRow
                       key={`${item.type}-${item.id}`}
                       item={item}
@@ -277,71 +338,14 @@ export default function StatsPage() {
 // Sub-components
 // ═══════════════════════════════════════════════════════════════════════════
 
-function StatsHeader({
-  availableFilters,
-  contentFilter,
-  setContentFilter,
-}: {
-  availableFilters: typeof FILTERS;
-  contentFilter: ContentFilter;
-  setContentFilter: (f: ContentFilter) => void;
-}) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-3xl font-bold mb-1">Estadísticas</h1>
-        <p className="text-muted-foreground">Análisis completo de vuestras valoraciones</p>
-      </div>
-
-      {availableFilters.length > 1 && (
-        <div className="w-full overflow-x-auto scrollbar-hide">
-          <div 
-            className={cn(
-              "p-1 bg-muted rounded-lg grid w-full gap-1",
-              // Esto ajusta las columnas dinámicamente según cuántos filtros haya
-              availableFilters.length === 4 ? "grid-cols-4" : 
-              availableFilters.length === 3 ? "grid-cols-3" : "flex"
-            )}
-            style={{ minWidth: availableFilters.length > 3 ? "400px" : "auto" }}
-          >
-            {availableFilters.map((f) => {
-              const Icon = f.icon;
-              const isActive = contentFilter === f.value;
-              
-              return (
-                <button
-                  key={f.value}
-                  onClick={() => setContentFilter(f.value)}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 text-xs sm:text-sm font-medium transition-all rounded-md whitespace-nowrap",
-                    isActive
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
-                  )}
-                >
-                  <Icon className={cn(
-                    "h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0",
-                    isActive ? "text-[#db6468]" : "text-muted-foreground"
-                  )} />
-                  <span className="truncate">{f.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function UserSummaryCard({
   label,
   data,
 }: {
   label: string;
-  data: { totalRatings: number; averageScore: number; distribution: Record<number, number> };
+  data: { totalRatings: number; averageScore: number; distribution: any };
 }) {
-  const mostUsed = getMostUsedScore(data.distribution as Record<string, number>);
+  const mostUsed = getMostUsedScore(data.distribution || {});
 
   return (
     <Card>
@@ -366,55 +370,53 @@ function UserSummaryCard({
   );
 }
 
-/** Badge that shows the content type with icon */
-function TypeBadge({ type }: { type: ContentType }) {
-  const cfg = CONTENT_TYPE_CONFIG[type];
-  const Icon = cfg.icon;
+function TypeBadge({ type }: { type: 'movie' | 'series' | 'game' }) {
+  const icons = { movie: FilmIcon, series: TvIcon, game: GamepadIcon };
+  const labels = { movie: 'Película', series: 'Serie', game: 'Juego' };
+  const Icon = icons[type];
+  
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">
       <Icon className="h-3 w-3" />
-      {cfg.label}
+      {labels[type]}
     </span>
   );
 }
 
-/** Route helper */
-function getItemRoute(item: NormalizedStatsItem): string {
+function getItemRoute(item: { type: 'movie' | 'series' | 'game'; id: string }): string {
   switch (item.type) {
     case 'movie':  return `/movies/${item.id}`;
     case 'series': return `/series/${item.id}`;
     case 'game':   return `/games/${item.id}`;
-    default: return `/dashboard`;
   }
 }
 
-/** Helper para obtener URL de imagen según tipo */
-function getImageUrl(
-  item: NormalizedStatsItem, 
-  size: "original" | "w92" | "w154" | "w185" | "w342" | "w500" | "w780" = 'w92'
-): string | null {
-  if (!item.posterPath) return null;
+function getImageUrl(posterPath: string | null, type: 'movie' | 'series' | 'game'): string | null {
+  if (!posterPath) return null;
   
-  // Para juegos (RAWG), la URL ya viene completa
-  if (item.type === 'game') {
-    return item.posterPath;
-  }
+  // Para juegos, la URL ya viene completa
+  if (type === 'game') return posterPath;
   
-  // Para movies y series (TMDB), usar el helper
-  // Ahora TypeScript sabe que 'size' es compatible
-  return getTMDBImageUrl(item.posterPath, size);
+  // Para movies/series, usar TMDB helper
+  return getTMDBImageUrl(posterPath, 'w92');
 }
 
 function ControversialRow({
   item,
-  difference,
   router,
 }: {
-  item: NormalizedStatsItem;
-  difference: number;
+  item: { 
+    id: string; 
+    type: 'movie' | 'series' | 'game'; 
+    title: string; 
+    posterPath: string | null; 
+    difference: number; 
+    user1Score: number; 
+    user2Score: number; 
+  };
   router: ReturnType<typeof useRouter>;
 }) {
-  const posterUrl = getImageUrl(item); // ← USAR HELPER
+  const posterUrl = getImageUrl(item.posterPath, item.type);
 
   return (
     <div
@@ -434,11 +436,11 @@ function ControversialRow({
           <TypeBadge type={item.type} />
         </div>
         <p className="text-xs text-muted-foreground">
-          U1: {item.ratings.user_1?.score || '-'} | U2: {item.ratings.user_2?.score || '-'}
+          U1: {item.user1Score} | U2: {item.user2Score}
         </p>
       </div>
       <div className="text-right flex-shrink-0">
-        <p className="text-lg font-bold text-red-500">Δ {difference}</p>
+        <p className="text-lg font-bold text-red-500">Δ {item.difference}</p>
         <p className="text-xs text-muted-foreground">puntos</p>
       </div>
     </div>
@@ -450,11 +452,19 @@ function TopRatedRow({
   index,
   router,
 }: {
-  item: NormalizedStatsItem;
+  item: {
+    id: string;
+    type: 'movie' | 'series' | 'game';
+    title: string;
+    posterPath: string | null;
+    averageScore: number;
+    user1Score?: number;
+    user2Score?: number;
+  };
   index: number;
   router: ReturnType<typeof useRouter>;
 }) {
-  const posterUrl = getImageUrl(item); // ← USAR HELPER
+  const posterUrl = getImageUrl(item.posterPath, item.type);
 
   return (
     <div
@@ -476,28 +486,29 @@ function TopRatedRow({
           <p className="font-medium truncate">{item.title}</p>
           <TypeBadge type={item.type} />
         </div>
-        <p className="text-xs text-muted-foreground">
-          {item.releaseYear}
-        </p>
       </div>
       <div className="text-right flex-shrink-0">
         <div className="flex items-center gap-1">
           <StarIcon className="h-4 w-4 fill-[#db6468] text-[#db6468]" />
-          <span className="text-lg font-bold">{item.averageScore?.toFixed(1)}</span>
+          <span className="text-lg font-bold">{item.averageScore.toFixed(1)}</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          U1: {item.ratings.user_1?.score || '-'} | U2: {item.ratings.user_2?.score || '-'}
+          U1: {item.user1Score || '-'} | U2: {item.user2Score || '-'}
         </p>
       </div>
     </div>
   );
 }
 
-function getMostUsedScore(distribution: Record<string, number>): number {
+function getMostUsedScore(distribution: any): number {
+  if (!distribution || typeof distribution !== 'object') return 0;
+  
   const entries = Object.entries(distribution);
   if (entries.length === 0) return 0;
+  
   const max = entries.reduce((prev, current) =>
-    current[1] > prev[1] ? current : prev
+    (current[1] as number) > (prev[1] as number) ? current : prev
   );
+  
   return parseInt(max[0]);
 }

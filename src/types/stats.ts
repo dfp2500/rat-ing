@@ -1,9 +1,11 @@
+// src/types/stats.ts - VERSIÓN ACTUALIZADA
+
 import { Timestamp } from 'firebase/firestore';
 
 export interface UserStats {
   totalRatings: number;
   averageScore: number;
-  distribution: ScoreDistribution; // Distribución de puntuaciones 1-10
+  distribution: ScoreDistribution;
 }
 
 export interface ScoreDistribution {
@@ -19,33 +21,97 @@ export interface ScoreDistribution {
   10: number;
 }
 
-export interface GlobalStats {
-  totalMovies: number;
+/**
+ * Estadísticas por tipo de contenido
+ */
+export interface ContentTypeStats {
+  total: number;           // Total de items de este tipo
+  averageScore: number;    // Promedio general
+  user_1: UserStats;       // Stats del usuario 1
+  user_2: UserStats;       // Stats del usuario 2
+  agreement: AgreementStats; // Stats de acuerdo para este tipo específico
+}
+
+/**
+ * Estadísticas de acuerdo/desacuerdo entre usuarios
+ */
+export interface AgreementStats {
+  totalBothRated: number;
+  perfectAgreement: number;    // diff === 0
+  closeAgreement: number;      // diff <= 1
+  moderateAgreement: number;   // diff <= 2
+  disagreement: number;        // diff > 2
+  averageDifference: number;
+}
+
+/**
+ * Top items guardados en estadísticas
+ */
+export interface TopItem {
+  id: string;
+  type: 'movie' | 'series' | 'game';
+  title: string;
+  posterPath: string | null;
   averageScore: number;
-  user_1: UserStats;
-  user_2: UserStats;
+  user1Score?: number;
+  user2Score?: number;
+}
+
+/**
+ * Items más controversiales
+ */
+export interface ControversialItem {
+  id: string;
+  type: 'movie' | 'series' | 'game';
+  title: string;
+  posterPath: string | null;
+  difference: number;
+  user1Score: number;
+  user2Score: number;
+}
+
+/**
+ * Punto de evolución temporal
+ */
+export interface EvolutionPoint {
+  month: string;        // YYYY-MM
+  average: number;
+  count: number;
+}
+
+/**
+ * Estadísticas globales persistidas en Firestore
+ * Documento: /stats/global
+ */
+export interface GlobalStats {
+  // ── Totales generales ──
+  totalItems: number;           // Total de movies + series + games
+  averageScore: number;         // Promedio de todo
+  
+  // ── Por tipo de contenido ──
+  movies: ContentTypeStats;
+  series: ContentTypeStats;
+  games: ContentTypeStats;
+  
+  // ── Stats de acuerdo (global) ──
+  agreement: AgreementStats;
+  
+  // ── Top 10 mejor valorados (global) ──
+  topRated: TopItem[];
+  
+  // ── Top 5 más controversiales (global) ──
+  mostControversial: ControversialItem[];
+  
+  // ── Evolución temporal (global) ──
+  averageEvolution: EvolutionPoint[];
+  
+  // ── Metadata ──
   lastUpdated: Timestamp;
 }
 
-// Stats calculadas en el cliente (no guardadas en Firestore)
-export interface ComputedStats {
-  totalMovies: number;
-  averageScore: number;
-  moviesPendingRating: number;
-  agreementRate: number; // % de películas donde la diferencia es <= 2
-  mostControversial?: {
-    movieId: string;
-    title: string;
-    difference: number;
-  };
-  topRated: Array<{
-    movieId: string;
-    title: string;
-    averageScore: number;
-  }>;
-}
-
-// Helper para crear distribución vacía
+/**
+ * Helper para crear distribución vacía
+ */
 export function createEmptyDistribution(): ScoreDistribution {
   return {
     1: 0,
@@ -58,5 +124,61 @@ export function createEmptyDistribution(): ScoreDistribution {
     8: 0,
     9: 0,
     10: 0,
+  };
+}
+
+/**
+ * Helper para crear UserStats vacío
+ */
+export function createEmptyUserStats(): UserStats {
+  return {
+    totalRatings: 0,
+    averageScore: 0,
+    distribution: createEmptyDistribution(),
+  };
+}
+
+/**
+ * Helper para crear ContentTypeStats vacío
+ */
+export function createEmptyContentTypeStats(): ContentTypeStats {
+  return {
+    total: 0,
+    averageScore: 0,
+    user_1: createEmptyUserStats(),
+    user_2: createEmptyUserStats(),
+    agreement: createEmptyAgreementStats(),
+  };
+}
+
+/**
+ * Helper para crear AgreementStats vacío
+ */
+export function createEmptyAgreementStats(): AgreementStats {
+  return {
+    totalBothRated: 0,
+    perfectAgreement: 0,
+    closeAgreement: 0,
+    moderateAgreement: 0,
+    disagreement: 0,
+    averageDifference: 0,
+  };
+}
+
+/**
+ * Helper para crear GlobalStats vacío
+ */
+export function createEmptyGlobalStats(): GlobalStats {
+  return {
+    totalItems: 0,
+    averageScore: 0,
+    movies: createEmptyContentTypeStats(),
+    series: createEmptyContentTypeStats(),
+    games: createEmptyContentTypeStats(),
+    agreement: createEmptyAgreementStats(),
+    topRated: [],
+    mostControversial: [],
+    averageEvolution: [],
+    lastUpdated: Timestamp.now(),
   };
 }
