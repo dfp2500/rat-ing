@@ -41,7 +41,6 @@ export function CompactGameCard({
     return name.length > 8 ? getUserInitials(user) : name;
   };
 
-  // Usar startedPlayingDate si existe, sino playedDate
   const displayDate = game.startedPlayingDate || game.playedDate;
 
   return (
@@ -50,13 +49,15 @@ export function CompactGameCard({
       className="group cursor-pointer overflow-hidden transition-all hover:shadow-md hover:scale-[1.01] p-0"
     >
       <div className="flex gap-3 p-3">
-        {/* Imagen miniatura (horizontal, ratio 16:9) */}
-        <div className="relative w-24 h-16 flex-shrink-0 rounded overflow-hidden bg-muted">
+        {/* IMAGEN AJUSTADA: Ahora w-16 h-24 para igualar a las películas */}
+        <div className="relative w-16 h-24 flex-shrink-0 rounded overflow-hidden bg-muted">
           {imageUrl ? (
             <img
               src={imageUrl}
               alt={game.name}
-              className="w-full h-full object-cover"
+              // El object-cover es clave aquí para que la imagen horizontal 
+              // rellene el contenedor vertical sin deformarse
+              className="w-full h-full object-cover" 
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -75,7 +76,6 @@ export function CompactGameCard({
 
         {/* Info */}
         <div className="flex-1 min-w-0 flex flex-col justify-between">
-          {/* Título */}
           <div>
             <h4 className="font-semibold line-clamp-1 group-hover:text-primary transition-colors">
               {game.name}
@@ -85,7 +85,6 @@ export function CompactGameCard({
             )}
           </div>
 
-          {/* Footer */}
           <div className="space-y-1">
             {showDate && displayDate && (
               <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
@@ -98,7 +97,6 @@ export function CompactGameCard({
               </div>
             )}
 
-            {/* Mini badges de ratings */}
             <div className="flex gap-1">
               <MiniRatingBadge
                 label={getUserLabel('user_1')}
@@ -114,14 +112,14 @@ export function CompactGameCard({
           </div>
         </div>
 
-        {/* Badge de pendiente */}
-        <div className="flex flex-col items-end gap-1">
-          {!hasUserRating && (
-            <div className="px-2 py-1 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-medium">
+        {/* Status Badge */}
+        {!hasUserRating && (
+          <div className="flex items-start">
+            <div className="px-2 py-1 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-medium whitespace-nowrap">
               Pendiente
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </Card>
   );

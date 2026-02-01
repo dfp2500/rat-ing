@@ -45,42 +45,44 @@ export function StatsCard({
       className={cn(
         'transition-all duration-200 overflow-hidden',
         variantStyles[variant],
-        onClick && 'cursor-pointer hover:shadow-md active:scale-95' // Feedback táctil en móvil
+        onClick && 'cursor-pointer hover:shadow-md active:scale-[0.98]' // Feedback táctil en móvil
       )}
       onClick={onClick}
     >
-      <CardContent className="p-3 sm:p-6">
-        {/* Cambiamos a flex-col en móvil y flex-row en sm (desktop) */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex items-center gap-3 sm:gap-4">
           
-          {/* Contenedor del Icono: Centrado en móvil, a la izquierda en PC */}
+          {/* Icono - Más compacto en móvil */}
           <div
             className={cn(
-              'p-2 rounded-lg bg-background/50 w-fit sm:shrink-0',
+              'p-2 sm:p-2.5 rounded-lg bg-background/50 shrink-0',
               iconStyles[variant]
             )}
           >
             <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
           
-          {/* Info: Alineada a la izquierda siempre para evitar el "serpenteo" visual */}
+          {/* Contenido - Flex para mejor distribución */}
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] sm:text-sm font-medium text-muted-foreground uppercase tracking-wider sm:normal-case mb-0.5">
+            {/* Título más pequeño en móvil */}
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">
               {title}
             </p>
             
-            <div className="flex items-baseline gap-1.5">
-              <h3 className="text-lg sm:text-2xl font-bold tracking-tight">
+            <div className="flex items-baseline gap-2">
+              {/* Valor principal */}
+              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 {value}
               </h3>
               
+              {/* Tendencia (si existe) */}
               {trend && (
                 <span
                   className={cn(
-                    'text-[10px] sm:text-xs font-bold px-1 rounded bg-background/50',
+                    'text-xs font-semibold px-1.5 py-0.5 rounded',
                     trend.isPositive
-                      ? 'text-green-600 dark:text-green-500'
-                      : 'text-red-600 dark:text-red-500'
+                      ? 'text-green-600 dark:text-green-400 bg-green-500/10'
+                      : 'text-red-600 dark:text-red-400 bg-red-500/10'
                   )}
                 >
                   {trend.isPositive ? '↑' : '↓'}{Math.abs(trend.value)}%
@@ -88,9 +90,9 @@ export function StatsCard({
               )}
             </div>
 
-            {/* Descripción: Solo visible si hay espacio (PC) */}
+            {/* Descripción - Oculta en móvil muy pequeño, visible desde sm */}
             {description && (
-              <p className="text-xs text-muted-foreground mt-1 truncate hidden lg:block">
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 line-clamp-1">
                 {description}
               </p>
             )}

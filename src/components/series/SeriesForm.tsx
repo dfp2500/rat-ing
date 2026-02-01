@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { StarIcon, CalendarIcon, CheckIcon, TvIcon, Loader2Icon, AlertCircleIcon } from 'lucide-react';
 import { getWatchStatusLabel } from '@/types/series';
+import { ExpandableDescription } from '../shared/ExpandableDescription';
 
 interface SeriesFormProps {
   series: TMDBSeries;
@@ -221,9 +222,7 @@ export function SeriesForm({ series, onCancel }: SeriesFormProps) {
               )}
 
               {series.overview && (
-                <p className="text-sm text-muted-foreground line-clamp-3">
-                  {series.overview}
-                </p>
+                <ExpandableDescription text={series.overview} />
               )}
             </div>
           </div>

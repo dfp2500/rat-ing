@@ -3,41 +3,62 @@
  * Fuente: https://api.rawg.io/docs/#operation/platforms_list
  */
 export const RAWG_PLATFORMS: Record<number, string> = {
-  1: 'Xbox One',
-  2: 'PlayStation 4',
-  3: 'Xbox 360',
+  // --- PC & Mobile ---
   4: 'PC',
   5: 'macOS',
   6: 'Linux',
-  7: 'Nintendo Switch',
-  8: 'Nintendo 3DS',
-  9: 'Nintendo DS',
-  10: 'Wii U',
-  11: 'Wii',
-  12: 'GameCube',
-  13: 'Nintendo 64',
-  14: 'PlayStation 5',
-  15: 'PlayStation 3',
-  16: 'PlayStation 2',
-  17: 'PlayStation',
-  18: 'PlayStation Vita',
-  19: 'PSP',
   21: 'Android',
   22: 'iOS',
   23: 'Web',
-  24: 'Xbox Series X/S',
-  25: 'Game Boy Advance',
-  26: 'Game Boy Color',
-  27: 'Game Boy',
-  28: 'SNES',
-  29: 'NES',
-  30: 'Sega Genesis',
-  31: 'Dreamcast',
-  32: 'Sega Saturn',
-  33: 'Sega CD',
-  34: 'Sega 32X',
-  35: 'Sega Master System',
-  36: 'Atari',
+
+  // --- PlayStation ---
+  187: 'PlayStation 5',
+  18: 'PlayStation 4',
+  16: 'PlayStation 3',
+  15: 'PlayStation 2',
+  27: 'PlayStation 1',
+  19: 'PS Vita',
+  17: 'PSP',
+
+  // --- Xbox ---
+  186: 'Xbox Series X/S',
+  1: 'Xbox One',
+  14: 'Xbox 360',
+  80: 'Xbox Retro',
+
+  // --- Nintendo ---
+  7: 'Nintendo Switch',
+  8: 'Nintendo 3DS',
+  9: 'Nintendo DS',
+  13: 'Nintendo DSi',
+  10: 'Wii U',
+  11: 'Wii',
+  105: 'GameCube',
+  83: 'Nintendo 64',
+  24: 'Game Boy Advance',
+  43: 'Game Boy Color',
+  26: 'Game Boy',
+  79: 'SNES',
+  49: 'NES',
+
+  // --- SEGA ---
+  167: 'Genesis',
+  107: 'Sega Saturn',
+  119: 'Sega Dreamcast',
+  117: 'Sega 32X',
+  74: 'Sega Master System',
+  77: 'Game Gear',
+
+  // --- Retro & Otros ---
+  31: 'Atari 2600',
+  28: 'Atari 7800',
+  101: 'Atari 5200',
+  46: 'Atari Lynx',
+  50: 'Atari XEGS',
+  166: 'Commodore / Amiga',
+  111: '3DO',
+  12: 'Neo Geo',
+  129: 'Apple II'
 };
 
 /**

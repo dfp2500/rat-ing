@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { StarIcon, CalendarIcon, CheckIcon, AlertCircleIcon } from 'lucide-react';
+import { ExpandableDescription } from '../shared/ExpandableDescription';
 
 interface MovieFormProps {
   movie: TMDBMovie;
@@ -156,9 +157,7 @@ export function MovieForm({ movie, onCancel }: MovieFormProps) {
               )}
 
               {movie.overview && (
-                <p className="text-sm text-muted-foreground line-clamp-3">
-                  {movie.overview}
-                </p>
+                <ExpandableDescription text={movie.overview} />
               )}
             </div>
           </div>

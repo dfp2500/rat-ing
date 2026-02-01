@@ -34,6 +34,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { gameService } from '@/lib/services/gameService';
 import { EditStartedPlayingDate } from '@/components/games/EditStartedPlayingDate';
 import { EditFinishedPlayingDate } from '@/components/games/EditFinishedPlayingDate';
+import { ExpandableDescription } from '@/components/shared/ExpandableDescription';
 
 interface GameDetailPageProps {
   params: Promise<{ id: string }>;
@@ -404,7 +405,7 @@ export default function GameDetailPage({ params }: GameDetailPageProps) {
                   <CardTitle>Descripción</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground whitespace-pre-line">{game.description}</p>
+                  <ExpandableDescription text={game.description} />
                 </CardContent>
               </Card>
             )}

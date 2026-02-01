@@ -38,6 +38,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { seriesService } from '@/lib/services/seriesService';
 import { EditStartedWatchingDate } from '@/components/series/EditStartedWatchingDate';
 import { EditFinishedWatchingDate } from '@/components/series/EditFinishedWatchingDate';
+import { ExpandableDescription } from '@/components/shared/ExpandableDescription';
 
 interface SeriesDetailPageProps {
   params: Promise<{ id: string }>;
@@ -463,7 +464,7 @@ export default function SeriesDetailPage({ params }: SeriesDetailPageProps) {
                   <CardTitle>Sinopsis</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">{series.overview}</p>
+                  <ExpandableDescription text={series.overview} />
                 </CardContent>
               </Card>
             )}

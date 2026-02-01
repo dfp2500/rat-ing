@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { StarIcon, GamepadIcon, Loader2Icon, AlertCircleIcon, CheckIcon } from 'lucide-react';
 import { getPlatformNames } from '@/lib/rawg/platforms';
+import { ExpandableDescription } from '../shared/ExpandableDescription';
 
 interface GameFormProps {
   game: RAWGGame;
@@ -154,9 +155,11 @@ export function GameForm({ game, onCancel }: GameFormProps) {
       {/* Preview del juego */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex gap-6">
-            <div className="flex-shrink-0">
-              <div className="w-48 h-32 rounded-lg overflow-hidden bg-muted">
+          {/* Cambiamos 'flex gap-6' por 'flex flex-col md:flex-row gap-6' */}
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Contenedor de la imagen corregido */}
+            <div className="w-full md:w-48 md:flex-shrink-0">
+              <div className="aspect-video md:aspect-auto md:h-32 w-full rounded-lg overflow-hidden bg-muted">
                 {imageUrl ? (
                   <img
                     src={imageUrl}
@@ -171,8 +174,9 @@ export function GameForm({ game, onCancel }: GameFormProps) {
               </div>
             </div>
 
+            {/* Contenedor de texto */}
             <div className="flex-1 min-w-0">
-              <h2 className="text-2xl font-bold mb-1">{game.name}</h2>
+              <h2 className="text-2xl font-bold mb-1 truncate md:whitespace-normal">{game.name}</h2>
               {year && (
                 <p className="text-muted-foreground mb-3">{year}</p>
               )}
@@ -198,9 +202,7 @@ export function GameForm({ game, onCancel }: GameFormProps) {
               )}
 
               {gameDetails.description_raw && (
-                <p className="text-sm text-muted-foreground line-clamp-3">
-                  {gameDetails.description_raw}
-                </p>
+                <ExpandableDescription text={gameDetails.description_raw} />
               )}
             </div>
           </div>

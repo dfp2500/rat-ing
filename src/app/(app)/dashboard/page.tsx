@@ -3,10 +3,12 @@
 import { useRouter } from 'next/navigation';
 import { useMovies } from '@/lib/hooks/useMovies';
 import { useSeries } from '@/lib/hooks/useSeries';
+import { useGames } from '@/lib/hooks/useGames';
 import { useCurrentUser } from '@/lib/hooks/useUser';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { CompactMovieCard } from '@/components/dashboard/CompactMovieCard';
 import { CompactSeriesCard } from '@/components/series/CompactSeriesCard';
+import { CompactGameCard } from '@/components/games/CompactGameCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,23 +29,25 @@ import {
 import { useMemo } from 'react';
 import { Movie } from '@/types/movie';
 import { Series } from '@/types/series';
+import { Game } from '@/types/game';
 
 // Tipo unificado para la actividad reciente
 type ActivityItem = {
   id: string;
-  type: 'movie' | 'series';
+  type: 'movie' | 'series' | 'game';
   title: string;
-  posterPath?: string;
-  date: number; // timestamp
+  posterPath?: string; // Aquí guardaremos tanto posterPath como backgroundImage
+  date: number;
   averageScore?: number;
   userHasRated: boolean;
-  data: Movie | Series;
+  data: Movie | Series | Game;
 };
 
 export default function DashboardPage() {
   const router = useRouter();
   const { data: movies, isLoading: moviesLoading } = useMovies();
   const { data: series, isLoading: seriesLoading } = useSeries();
+  const { data: games, isLoading: gamesLoading } = useGames();
   const { data: currentUser, isLoading: userLoading } = useCurrentUser();
 
   // Calcular estadísticas unificadas
@@ -53,6 +57,7 @@ export default function DashboardPage() {
         totalItems: 0,
         totalMovies: 0,
         totalSeries: 0,
+        totalGames: 0,
         overallAverage: 0,
         userAverage: 0,
         totalPending: 0,
@@ -60,12 +65,14 @@ export default function DashboardPage() {
         recentActivity: [] as ActivityItem[],
         pendingMovies: [] as Movie[],
         pendingSeries: [] as Series[],
+        pendingGames: [] as Game[],
       };
     }
 
     const totalMovies = movies?.length || 0;
     const totalSeries = series?.length || 0;
-    const totalItems = totalMovies + totalSeries;
+    const totalGames = games?.length || 0;
+    const totalItems = totalMovies + totalSeries + totalGames;
 
     // Películas con valoración del usuario
     const userRatedMovies = movies?.filter(
@@ -77,24 +84,32 @@ export default function DashboardPage() {
       (s) => s.ratings[currentUser.role] !== undefined
     ) || [];
 
+    // Juegos con valoración del usuario
+    const userRatedGames = games?.filter(
+      (m) => m.ratings[currentUser.role] !== undefined
+    ) || [];
+
     // Promedio del usuario (combinado)
-    const totalUserRatings = userRatedMovies.length + userRatedSeries.length;
+    const totalUserRatings = userRatedMovies.length + userRatedSeries.length + userRatedGames.length;
     const userAverage = totalUserRatings > 0
       ? (
           userRatedMovies.reduce((sum, m) => sum + (m.ratings[currentUser.role]?.score || 0), 0) +
-          userRatedSeries.reduce((sum, s) => sum + (s.ratings[currentUser.role]?.score || 0), 0)
+          userRatedSeries.reduce((sum, s) => sum + (s.ratings[currentUser.role]?.score || 0), 0) +
+          userRatedGames.reduce((sum, s) => sum + (s.ratings[currentUser.role]?.score || 0), 0)
         ) / totalUserRatings
       : 0;
 
     // Promedio general
     const moviesWithAverage = movies?.filter((m) => m.averageScore !== undefined) || [];
     const seriesWithAverage = series?.filter((s) => s.averageScore !== undefined) || [];
-    const totalWithAverage = moviesWithAverage.length + seriesWithAverage.length;
+    const gamesWithAverage = games?.filter((s) => s.averageScore !== undefined) || [];
+    const totalWithAverage = moviesWithAverage.length + seriesWithAverage.length + gamesWithAverage.length;
     
     const overallAverage = totalWithAverage > 0
       ? (
           moviesWithAverage.reduce((sum, m) => sum + (m.averageScore || 0), 0) +
-          seriesWithAverage.reduce((sum, s) => sum + (s.averageScore || 0), 0)
+          seriesWithAverage.reduce((sum, s) => sum + (s.averageScore || 0), 0) +
+          gamesWithAverage.reduce((sum, s) => sum + (s.averageScore || 0), 0)
         ) / totalWithAverage
       : 0;
 
@@ -106,8 +121,12 @@ export default function DashboardPage() {
     const pendingSeries = series?.filter(
       (s) => s.ratings[currentUser.role] === undefined
     ) || [];
+
+    const pendingGames = games?.filter(
+      (s) => s.ratings[currentUser.role] === undefined
+    ) || [];
     
-    const totalPending = pendingMovies.length + pendingSeries.length;
+    const totalPending = pendingMovies.length + pendingSeries.length + pendingGames.length;
 
     // Tasa de completitud
     const completionRate = totalItems > 0 
@@ -137,7 +156,19 @@ export default function DashboardPage() {
       data: s,
     }));
 
-    const recentActivity = [...movieActivity, ...seriesActivity]
+    const gameActivity: ActivityItem[] = (games || []).map(g => ({
+      id: g.id,
+      type: 'game' as const,
+      title: g.name, // En Game es 'name', no 'title'
+      posterPath: g.backgroundImage, // En Game es 'backgroundImage', no 'posterPath'
+      // Usamos startedPlayingDate para la cronología de actividad
+      date: g.startedPlayingDate?.toMillis() || g.createdAt.toMillis(), 
+      averageScore: g.averageScore,
+      userHasRated: !!(currentUser && g.ratings[currentUser.role]),
+      data: g,
+    }));
+
+    const recentActivity = [...movieActivity, ...seriesActivity, ...gameActivity]
       .sort((a, b) => b.date - a.date)
       .slice(0, 8);
 
@@ -145,6 +176,7 @@ export default function DashboardPage() {
       totalItems,
       totalMovies,
       totalSeries,
+      totalGames,
       overallAverage,
       userAverage,
       totalPending,
@@ -152,10 +184,11 @@ export default function DashboardPage() {
       recentActivity,
       pendingMovies: pendingMovies.slice(0, 3),
       pendingSeries: pendingSeries.slice(0, 3),
+      pendingGames: pendingGames.slice(0, 3),
     };
-  }, [movies, series, currentUser]);
+  }, [movies, series, games, currentUser]);
 
-  const isLoading = moviesLoading || seriesLoading || userLoading;
+  const isLoading = moviesLoading || seriesLoading || gamesLoading || userLoading;
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -170,51 +203,51 @@ export default function DashboardPage() {
           <EmptyDashboard />
         ) : (
           <div className="space-y-8">
-            {/* Header */}
-            <div>
-              <h1 className="text-3xl font-bold">Dashboard</h1>
-              <p className="text-muted-foreground mt-1">
-                Tu actividad completa en un vistazo
-              </p>
-            </div>
 
             {/* Stats Grid - Vista general */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatsCard
-                title="Total Rateadas"
-                value={stats.totalItems}
-                icon={ActivityIcon}
-                description={`${stats.totalMovies} películas, ${stats.totalSeries} series`}
-                variant="primary"
-              />
-
-              <StatsCard
-                title="Promedio Pareja"
-                value={stats.overallAverage.toFixed(1)}
-                icon={StarIcon}
-                description="Media de todas tus valoraciones"
-                variant="success"
-              />
-
-              <StatsCard
-                title="Tu Promedio"
-                value={stats.userAverage.toFixed(1)}
-                icon={TrendingUpIcon}
-                description={`De ${stats.totalItems} rateos`}
-              />
-
-              <StatsCard
-                title="Pendientes"
-                value={stats.totalPending}
-                icon={ClockIcon}
-                description="Por valorar"
-                variant={stats.totalPending > 0 ? 'warning' : 'default'}
-              />
+            <div className="overflow-x-auto pb-4 -mx-4 px-4">
+              <div className="flex gap-4 lg:grid lg:grid-cols-4 min-w-max lg:min-w-0">
+                <div className="w-64 lg:w-auto flex-shrink-0">
+                  <StatsCard
+                    title="Total Rateadas"
+                    value={stats.totalItems}
+                    icon={ActivityIcon}
+                    description={`${stats.totalMovies} películas, ${stats.totalSeries} series, ${stats.totalGames} juegos`}
+                    variant="primary"
+                  />
+                </div>
+                <div className="w-64 lg:w-auto flex-shrink-0">
+                  <StatsCard
+                    title="Promedio Pareja"
+                    value={stats.overallAverage.toFixed(1)}
+                    icon={StarIcon}
+                    description="Media de todas tus valoraciones"
+                    variant="success"
+                  />
+                </div>
+                <div className="w-64 lg:w-auto flex-shrink-0">
+                  <StatsCard
+                    title="Tu Promedio"
+                    value={stats.userAverage.toFixed(1)}
+                    icon={TrendingUpIcon}
+                    description={`De ${stats.totalItems} rateos`}
+                  />
+                </div>
+                <div className="w-64 lg:w-auto flex-shrink-0">
+                  <StatsCard
+                    title="Pendientes"
+                    value={stats.totalPending}
+                    icon={ClockIcon}
+                    description="Por valorar"
+                    variant={stats.totalPending > 0 ? 'warning' : 'default'}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Tabs de contenido */}
             <Tabs defaultValue="recent" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="recent">
                   <ActivityIcon className="h-4 w-4 mr-2" />
                   Reciente
@@ -226,6 +259,10 @@ export default function DashboardPage() {
                 <TabsTrigger value="series">
                   <TvIcon className="h-4 w-4 mr-2" />
                   Series
+                </TabsTrigger>
+                <TabsTrigger value="games">
+                  <GamepadIcon className="h-4 w-4 mr-2" />
+                  Juegos
                 </TabsTrigger>
               </TabsList>
 
@@ -243,19 +280,37 @@ export default function DashboardPage() {
                     ) : (
                       stats.recentActivity.map((item) => (
                         <div key={`${item.type}-${item.id}`}>
-                          {item.type === 'movie' ? (
-                            <CompactMovieCard
-                              movie={item.data as Movie}
-                              currentUserRole={currentUser?.role}
-                              onClick={() => router.push(`/movies/${item.id}`)}
-                            />
-                          ) : (
-                            <CompactSeriesCard
-                              series={item.data as Series}
-                              currentUserRole={currentUser?.role}
-                              onClick={() => router.push(`/series/${item.id}`)}
-                            />
-                          )}
+                          {(() => {
+                            // Usamos una función autoinvocada para manejar múltiples tipos
+                            switch (item.type) {
+                              case 'movie':
+                                return (
+                                  <CompactMovieCard
+                                    movie={item.data as Movie}
+                                    currentUserRole={currentUser?.role}
+                                    onClick={() => router.push(`/movies/${item.id}`)}
+                                  />
+                                );
+                              case 'series':
+                                return (
+                                  <CompactSeriesCard
+                                    series={item.data as Series}
+                                    currentUserRole={currentUser?.role}
+                                    onClick={() => router.push(`/series/${item.id}`)}
+                                  />
+                                );
+                              case 'game':
+                                return (
+                                  <CompactGameCard
+                                    game={item.data as Game}
+                                    currentUserRole={currentUser?.role}
+                                    onClick={() => router.push(`/games/${item.id}`)}
+                                  />
+                                );
+                              default:
+                                return null;
+                            }
+                          })()}
                         </div>
                       ))
                     )}
@@ -265,7 +320,7 @@ export default function DashboardPage() {
 
               {/* Tab: Películas */}
               <TabsContent value="movies" className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 md:grid-cols-3 gap-2 sm:gap-4">
                   <StatsCard
                     title="Películas"
                     value={stats.totalMovies}
@@ -280,7 +335,7 @@ export default function DashboardPage() {
                         ? (movies
                             .filter(m => m.averageScore)
                             .reduce((sum, m) => sum + (m.averageScore || 0), 0) / 
-                           movies.filter(m => m.averageScore).length
+                          movies.filter(m => m.averageScore).length
                           ).toFixed(1)
                         : '0.0'
                     }
@@ -327,7 +382,7 @@ export default function DashboardPage() {
 
               {/* Tab: Series */}
               <TabsContent value="series" className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 md:grid-cols-3 gap-2 sm:gap-4">
                   <StatsCard
                     title="Series"
                     value={stats.totalSeries}
@@ -342,7 +397,7 @@ export default function DashboardPage() {
                         ? (series
                             .filter(s => s.averageScore)
                             .reduce((sum, s) => sum + (s.averageScore || 0), 0) / 
-                           series.filter(s => s.averageScore).length
+                          series.filter(s => s.averageScore).length
                           ).toFixed(1)
                         : '0.0'
                     }
@@ -386,6 +441,68 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              {/* Tab: Juegos */}
+              <TabsContent value="games" className="space-y-6">
+                <div className="grid grid-cols-3 md:grid-cols-3 gap-2 sm:gap-4">
+                  <StatsCard
+                    title="Juegos"
+                    value={stats.totalGames}
+                    icon={GamepadIcon}
+                    description="Total jugados"
+                    onClick={() => router.push('/games')}
+                  />
+                  <StatsCard
+                    title="Promedio"
+                    value={
+                      games && games.length > 0
+                        ? (games
+                            .filter(s => s.averageScore)
+                            .reduce((sum, s) => sum + (s.averageScore || 0), 0) / 
+                          games.filter(s => s.averageScore).length
+                          ).toFixed(1)
+                        : '0.0'
+                    }
+                    icon={StarIcon}
+                    description="De juegos"
+                  />
+                  <StatsCard
+                    title="Pendientes"
+                    value={stats.pendingGames.length}
+                    icon={ClockIcon}
+                    description="Sin valorar"
+                    onClick={() => router.push('/games?filter=pending')}
+                    variant={stats.pendingGames.length > 0 ? 'warning' : 'default'}
+                  />
+                </div>
+
+                {/* Últimos juegos */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Últimos Juegos</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.push('/games')}
+                      >
+                        Ver todos
+                        <ArrowRightIcon className="h-4 w-4 ml-2" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {(games || []).slice(0, 5).map((game) => (
+                      <CompactGameCard
+                        key={game.id}
+                        game={game}
+                        currentUserRole={currentUser?.role}
+                        onClick={() => router.push(`/games/${game.id}`)}
+                      />
+                    ))}
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
 
             {/* Acciones Rápidas */}
@@ -415,14 +532,11 @@ export default function DashboardPage() {
 
                   <Button
                     variant="outline"
-                    className="h-24 flex-col gap-2 relative"
-                    disabled
+                    className="h-24 flex-col gap-2"
+                    onClick={() => router.push('/games/add')}
                   >
-                    <GamepadIcon className="h-6 w-6 text-green-500 opacity-50" />
-                    <span className="text-sm font-semibold opacity-50">Videojuegos</span>
-                    <span className="absolute top-2 right-2 text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full font-medium">
-                      PRÓXIMAMENTE
-                    </span>
+                    <GamepadIcon className="h-6 w-6 text-green-500" />
+                    <span className="text-sm font-semibold">Añadir Juego</span>
                   </Button>
 
                   <Button
@@ -471,6 +585,10 @@ function EmptyDashboard() {
           <TvIcon className="h-5 w-5 mr-2" />
           Añadir Serie
         </Button>
+        <Button onClick={() => router.push('/games/add')} size="lg" variant="outline">
+          <TvIcon className="h-5 w-5 mr-2" />
+          Añadir Juego
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left mt-12">
@@ -480,7 +598,7 @@ function EmptyDashboard() {
           </div>
           <h3 className="font-semibold mb-2">Múltiples Categorías</h3>
           <p className="text-sm text-muted-foreground">
-            Películas, series y próximamente videojuegos
+            Películas, series y videojuegos
           </p>
         </div>
 

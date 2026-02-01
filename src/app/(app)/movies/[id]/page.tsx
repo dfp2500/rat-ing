@@ -29,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ExpandableDescription } from '@/components/shared/ExpandableDescription';
 
 interface MovieDetailPageProps {
   params: Promise<{ id: string }>;
@@ -323,7 +324,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                   <CardTitle>Sinopsis</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">{movie.overview}</p>
+                  <ExpandableDescription text={movie.overview} />
                 </CardContent>
               </Card>
             )}
