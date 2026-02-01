@@ -110,7 +110,7 @@ export default function StatsPage() {
       />
 
       {/* Overview cards - Compactas en móvil */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+      <div className="grid grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-4">
         <StatsCard
           title={contentFilter === 'all' ? 'Total Rateadas' : CONTENT_TYPE_CONFIG[contentFilter as ContentType]?.plural || 'Total'}
           value={stats.totalItems}
@@ -294,25 +294,40 @@ function StatsHeader({
       </div>
 
       {availableFilters.length > 1 && (
-        <div className="flex flex-wrap gap-2">
-          {availableFilters.map((f) => {
-            const Icon = f.icon;
-            return (
-              <button
-                key={f.value}
-                onClick={() => setContentFilter(f.value)}
-                className={cn(
-                  'px-4 py-2 rounded-full text-sm font-medium transition-all border flex items-center gap-2',
-                  contentFilter === f.value
-                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                    : 'bg-card text-muted-foreground border-muted hover:border-primary/50 hover:text-foreground'
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {f.label}
-              </button>
-            );
-          })}
+        <div className="w-full overflow-x-auto scrollbar-hide">
+          <div 
+            className={cn(
+              "p-1 bg-muted rounded-lg grid w-full gap-1",
+              // Esto ajusta las columnas dinámicamente según cuántos filtros haya
+              availableFilters.length === 4 ? "grid-cols-4" : 
+              availableFilters.length === 3 ? "grid-cols-3" : "flex"
+            )}
+            style={{ minWidth: availableFilters.length > 3 ? "400px" : "auto" }}
+          >
+            {availableFilters.map((f) => {
+              const Icon = f.icon;
+              const isActive = contentFilter === f.value;
+              
+              return (
+                <button
+                  key={f.value}
+                  onClick={() => setContentFilter(f.value)}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 text-xs sm:text-sm font-medium transition-all rounded-md whitespace-nowrap",
+                    isActive
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
+                  )}
+                >
+                  <Icon className={cn(
+                    "h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0",
+                    isActive ? "text-[#db6468]" : "text-muted-foreground"
+                  )} />
+                  <span className="truncate">{f.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
