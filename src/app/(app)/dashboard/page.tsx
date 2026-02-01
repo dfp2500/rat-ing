@@ -205,66 +205,61 @@ export default function DashboardPage() {
           <div className="space-y-8">
 
             {/* Stats Grid - Vista general */}
-            <div className="overflow-x-auto pb-4 -mx-4 px-4">
-              <div className="flex gap-4 lg:grid lg:grid-cols-4 min-w-max lg:min-w-0">
-                <div className="w-64 lg:w-auto flex-shrink-0">
-                  <StatsCard
-                    title="Total Rateadas"
-                    value={stats.totalItems}
-                    icon={ActivityIcon}
-                    description={`${stats.totalMovies} películas, ${stats.totalSeries} series, ${stats.totalGames} juegos`}
-                    variant="primary"
-                  />
-                </div>
-                <div className="w-64 lg:w-auto flex-shrink-0">
-                  <StatsCard
-                    title="Promedio Pareja"
-                    value={stats.overallAverage.toFixed(1)}
-                    icon={StarIcon}
-                    description="Media de todas tus valoraciones"
-                    variant="success"
-                  />
-                </div>
-                <div className="w-64 lg:w-auto flex-shrink-0">
-                  <StatsCard
-                    title="Tu Promedio"
-                    value={stats.userAverage.toFixed(1)}
-                    icon={TrendingUpIcon}
-                    description={`De ${stats.totalItems} rateos`}
-                  />
-                </div>
-                <div className="w-64 lg:w-auto flex-shrink-0">
-                  <StatsCard
-                    title="Pendientes"
-                    value={stats.totalPending}
-                    icon={ClockIcon}
-                    description="Por valorar"
-                    variant={stats.totalPending > 0 ? 'warning' : 'default'}
-                  />
-                </div>
-              </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <StatsCard
+                title="Total Rateadas"
+                value={stats.totalItems}
+                icon={ActivityIcon}
+                description={`${stats.totalMovies} películas, ${stats.totalSeries} series, ${stats.totalGames} juegos`}
+                variant="primary"
+              />
+
+              <StatsCard
+                title="Promedio Pareja"
+                value={stats.overallAverage.toFixed(1)}
+                icon={StarIcon}
+                description="Media de todas tus valoraciones"
+                variant="success"
+              />
+
+              <StatsCard
+                title="Tu Promedio"
+                value={stats.userAverage.toFixed(1)}
+                icon={TrendingUpIcon}
+                description={`De ${stats.totalItems} rateos`}
+              />
+
+              <StatsCard
+                title="Pendientes"
+                value={stats.totalPending}
+                icon={ClockIcon}
+                description="Por valorar"
+                variant={stats.totalPending > 0 ? 'warning' : 'default'}
+              />
             </div>
 
-            {/* Tabs de contenido */}
+            {/* Tabs de contenido - Ancho completo con scroll si es necesario */}
             <Tabs defaultValue="recent" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="recent">
-                  <ActivityIcon className="h-4 w-4 mr-2" />
-                  Reciente
-                </TabsTrigger>
-                <TabsTrigger value="movies">
-                  <FilmIcon className="h-4 w-4 mr-2" />
-                  Películas
-                </TabsTrigger>
-                <TabsTrigger value="series">
-                  <TvIcon className="h-4 w-4 mr-2" />
-                  Series
-                </TabsTrigger>
-                <TabsTrigger value="games">
-                  <GamepadIcon className="h-4 w-4 mr-2" />
-                  Juegos
-                </TabsTrigger>
-              </TabsList>
+              <div className="w-full overflow-x-auto scrollbar-hide">
+                <TabsList className="w-full grid grid-cols-4 min-w-full">
+                  <TabsTrigger value="recent" className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                    <ActivityIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="truncate">Reciente</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="movies" className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                    <FilmIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="truncate">Películas</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="series" className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                    <TvIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="truncate">Series</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="games" className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                    <GamepadIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="truncate">Juegos</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
               {/* Tab: Actividad Reciente */}
               <TabsContent value="recent" className="space-y-6">
@@ -320,13 +315,14 @@ export default function DashboardPage() {
 
               {/* Tab: Películas */}
               <TabsContent value="movies" className="space-y-6">
-                <div className="grid grid-cols-3 md:grid-cols-3 gap-2 sm:gap-4">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   <StatsCard
                     title="Películas"
                     value={stats.totalMovies}
                     icon={FilmIcon}
                     description="Total vistas"
                     onClick={() => router.push('/movies')}
+                    compact // ← MODO COMPACTO
                   />
                   <StatsCard
                     title="Promedio"
@@ -341,6 +337,7 @@ export default function DashboardPage() {
                     }
                     icon={StarIcon}
                     description="De películas"
+                    compact // ← MODO COMPACTO
                   />
                   <StatsCard
                     title="Pendientes"
@@ -349,6 +346,7 @@ export default function DashboardPage() {
                     description="Sin valorar"
                     onClick={() => router.push('/movies?filter=pending')}
                     variant={stats.pendingMovies.length > 0 ? 'warning' : 'default'}
+                    compact // ← MODO COMPACTO
                   />
                 </div>
 
@@ -382,13 +380,14 @@ export default function DashboardPage() {
 
               {/* Tab: Series */}
               <TabsContent value="series" className="space-y-6">
-                <div className="grid grid-cols-3 md:grid-cols-3 gap-2 sm:gap-4">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   <StatsCard
                     title="Series"
                     value={stats.totalSeries}
                     icon={TvIcon}
                     description="Total agregadas"
                     onClick={() => router.push('/series')}
+                    compact // ← MODO COMPACTO
                   />
                   <StatsCard
                     title="Promedio"
@@ -403,6 +402,7 @@ export default function DashboardPage() {
                     }
                     icon={StarIcon}
                     description="De series"
+                    compact // ← MODO COMPACTO
                   />
                   <StatsCard
                     title="Pendientes"
@@ -411,6 +411,7 @@ export default function DashboardPage() {
                     description="Sin valorar"
                     onClick={() => router.push('/series?filter=pending')}
                     variant={stats.pendingSeries.length > 0 ? 'warning' : 'default'}
+                    compact // ← MODO COMPACTO
                   />
                 </div>
 
@@ -444,13 +445,14 @@ export default function DashboardPage() {
 
               {/* Tab: Juegos */}
               <TabsContent value="games" className="space-y-6">
-                <div className="grid grid-cols-3 md:grid-cols-3 gap-2 sm:gap-4">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   <StatsCard
                     title="Juegos"
                     value={stats.totalGames}
                     icon={GamepadIcon}
                     description="Total jugados"
                     onClick={() => router.push('/games')}
+                    compact // ← MODO COMPACTO
                   />
                   <StatsCard
                     title="Promedio"
@@ -465,6 +467,7 @@ export default function DashboardPage() {
                     }
                     icon={StarIcon}
                     description="De juegos"
+                    compact // ← MODO COMPACTO
                   />
                   <StatsCard
                     title="Pendientes"
@@ -473,6 +476,7 @@ export default function DashboardPage() {
                     description="Sin valorar"
                     onClick={() => router.push('/games?filter=pending')}
                     variant={stats.pendingGames.length > 0 ? 'warning' : 'default'}
+                    compact // ← MODO COMPACTO
                   />
                 </div>
 

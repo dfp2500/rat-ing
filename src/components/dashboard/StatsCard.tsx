@@ -15,6 +15,7 @@ interface StatsCardProps {
   };
   onClick?: () => void;
   variant?: 'default' | 'primary' | 'success' | 'warning';
+  compact?: boolean; // Nueva prop para modo compacto
 }
 
 export function StatsCard({
@@ -25,6 +26,7 @@ export function StatsCard({
   trend,
   onClick,
   variant = 'default',
+  compact = false,
 }: StatsCardProps) {
   const variantStyles = {
     default: 'bg-card hover:bg-accent/50',
@@ -40,19 +42,53 @@ export function StatsCard({
     warning: 'text-amber-600 dark:text-amber-500',
   };
 
+  // Versión COMPACTA para móvil (3 columnas)
+  if (compact) {
+    return (
+      <Card
+        className={cn(
+          'transition-all duration-200 overflow-hidden',
+          variantStyles[variant],
+          onClick && 'cursor-pointer hover:shadow-md active:scale-[0.98]'
+        )}
+        onClick={onClick}
+      >
+        <CardContent className="p-3">
+          <div className="flex flex-col items-center text-center gap-1.5">
+            {/* Icono arriba */}
+            <div className={cn('p-1.5 rounded-md bg-background/50', iconStyles[variant])}>
+              <Icon className="h-4 w-4" />
+            </div>
+            
+            {/* Valor grande */}
+            <h3 className="text-xl font-bold tracking-tight leading-none">
+              {value}
+            </h3>
+            
+            {/* Título pequeño */}
+            <p className="text-[10px] font-medium text-muted-foreground leading-tight">
+              {title}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Versión NORMAL para desktop y grid 2x2 móvil
   return (
     <Card
       className={cn(
         'transition-all duration-200 overflow-hidden',
         variantStyles[variant],
-        onClick && 'cursor-pointer hover:shadow-md active:scale-[0.98]' // Feedback táctil en móvil
+        onClick && 'cursor-pointer hover:shadow-md active:scale-[0.98]'
       )}
       onClick={onClick}
     >
       <CardContent className="p-4 sm:p-6">
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-start gap-3 sm:gap-4">
           
-          {/* Icono - Más compacto en móvil */}
+          {/* Icono */}
           <div
             className={cn(
               'p-2 sm:p-2.5 rounded-lg bg-background/50 shrink-0',
@@ -62,20 +98,17 @@ export function StatsCard({
             <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
           
-          {/* Contenido - Flex para mejor distribución */}
+          {/* Contenido */}
           <div className="flex-1 min-w-0">
-            {/* Título más pequeño en móvil */}
             <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">
               {title}
             </p>
             
             <div className="flex items-baseline gap-2">
-              {/* Valor principal */}
               <h3 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 {value}
               </h3>
               
-              {/* Tendencia (si existe) */}
               {trend && (
                 <span
                   className={cn(
@@ -90,7 +123,6 @@ export function StatsCard({
               )}
             </div>
 
-            {/* Descripción - Oculta en móvil muy pequeño, visible desde sm */}
             {description && (
               <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 line-clamp-1">
                 {description}
