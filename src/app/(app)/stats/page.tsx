@@ -374,7 +374,10 @@ function getItemRoute(item: NormalizedStatsItem): string {
 }
 
 /** Helper para obtener URL de imagen según tipo */
-function getImageUrl(item: NormalizedStatsItem, size: string = 'w92'): string | null {
+function getImageUrl(
+  item: NormalizedStatsItem, 
+  size: "original" | "w92" | "w154" | "w185" | "w342" | "w500" | "w780" = 'w92'
+): string | null {
   if (!item.posterPath) return null;
   
   // Para juegos (RAWG), la URL ya viene completa
@@ -383,6 +386,7 @@ function getImageUrl(item: NormalizedStatsItem, size: string = 'w92'): string | 
   }
   
   // Para movies y series (TMDB), usar el helper
+  // Ahora TypeScript sabe que 'size' es compatible
   return getTMDBImageUrl(item.posterPath, size);
 }
 
