@@ -368,6 +368,7 @@ function getItemRoute(item: NormalizedStatsItem): string {
     case 'movie':  return `/movies/${item.id}`;
     case 'series': return `/series/${item.id}`;
     // Future types get their own route here
+    default: return `/dashboard`;
   }
 }
 

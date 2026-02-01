@@ -214,6 +214,8 @@ export const gameConverter: FirestoreDataConverter<Game> = {
       },
       averageScore: game.averageScore ?? null,
       bothRated: game.bothRated,
+      startedPlayingDate: game.startedPlayingDate ?? null,
+      finishedPlayingDate: game.finishedPlayingDate ?? null,
     };
   },
 
@@ -242,6 +244,8 @@ export const gameConverter: FirestoreDataConverter<Game> = {
       },
       averageScore: data.averageScore ?? undefined,
       bothRated: data.bothRated || false,
+      startedPlayingDate: data.startedPlayingDate ?? undefined,
+      finishedPlayingDate: data.finishedPlayingDate ?? undefined,
     };
   },
 };

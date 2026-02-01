@@ -48,9 +48,24 @@ export class GameService {
       ratings[data.initialRating.userRole] = ratingObj;
     }
 
+    // Convertir playedDate a Date
     const playedDateValue = data.playedDate instanceof Timestamp 
       ? data.playedDate.toDate() 
       : data.playedDate;
+
+    // Usar startedPlayingDate si existe, sino usar playedDate
+    const startedPlayingDateValue = data.startedPlayingDate
+      ? (data.startedPlayingDate instanceof Timestamp 
+          ? data.startedPlayingDate.toDate() 
+          : data.startedPlayingDate)
+      : playedDateValue;
+
+    // Convertir finishedPlayingDate si existe
+    const finishedPlayingDateValue = data.finishedPlayingDate
+      ? (data.finishedPlayingDate instanceof Timestamp 
+          ? data.finishedPlayingDate.toDate() 
+          : data.finishedPlayingDate)
+      : null;
 
     const newGame: Omit<Game, 'id'> = {
       rawgId: data.rawgId,
@@ -64,6 +79,8 @@ export class GameService {
       metacritic: data.metacritic,
       addedBy: data.addedBy,
       playedDate: Timestamp.fromDate(playedDateValue),
+      startedPlayingDate: Timestamp.fromDate(startedPlayingDateValue),
+      finishedPlayingDate: finishedPlayingDateValue ? Timestamp.fromDate(finishedPlayingDateValue) : null,
       createdAt: Timestamp.now(),
       ratings,
       averageScore: calculateAverageScore(ratings),
@@ -108,7 +125,7 @@ export class GameService {
     const gamesCollection = getGamesCollection();
     const q = query(
       gamesCollection,
-      orderBy('playedDate', 'desc')
+      orderBy('startedPlayingDate', 'desc')
     );
 
     const snapshot = await getDocs(q);
@@ -122,7 +139,7 @@ export class GameService {
     const gamesCollection = getGamesCollection();
     const q = query(
       gamesCollection,
-      orderBy('playedDate', 'desc'),
+      orderBy('startedPlayingDate', 'desc'),
       firestoreLimit(limitCount)
     );
 
@@ -138,7 +155,7 @@ export class GameService {
     const q = query(
       gamesCollection,
       where(`ratings.${userRole}`, '==', null),
-      orderBy('playedDate', 'desc')
+      orderBy('startedPlayingDate', 'desc')
     );
 
     const snapshot = await getDocs(q);
@@ -196,13 +213,32 @@ export class GameService {
   }
 
   /**
-   * Actualizar fecha jugada
+   * Actualizar fecha de inicio
    */
-  async updatePlayedDate(gameId: string, playedDate: Date): Promise<void> {
+  async updateStartedPlayingDate(gameId: string, startedPlayingDate: Date): Promise<void> {
     const gameDoc = getGameDoc(gameId);
     await updateDoc(gameDoc, {
-      playedDate: Timestamp.fromDate(playedDate),
+      startedPlayingDate: Timestamp.fromDate(startedPlayingDate),
+      // Actualizar también playedDate para compatibilidad
+      playedDate: Timestamp.fromDate(startedPlayingDate),
     });
+  }
+
+  /**
+   * Actualizar fecha de finalización
+   */
+  async updateFinishedPlayingDate(gameId: string, finishedPlayingDate: Date | null): Promise<void> {
+    const gameDoc = getGameDoc(gameId);
+    await updateDoc(gameDoc, {
+      finishedPlayingDate: finishedPlayingDate ? Timestamp.fromDate(finishedPlayingDate) : null,
+    });
+  }
+
+  /**
+   * Actualizar fecha jugada (deprecated - usar updateStartedPlayingDate)
+   */
+  async updatePlayedDate(gameId: string, playedDate: Date): Promise<void> {
+    return this.updateStartedPlayingDate(gameId, playedDate);
   }
 
   /**

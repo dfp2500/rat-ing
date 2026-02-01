@@ -150,7 +150,7 @@ export function RatingInput({
           <Label htmlFor="comment">Comentario (opcional)</Label>
           <Input
             id="comment"
-            placeholder="¿Qué te pareció la película?"
+            placeholder="¿Qué te pareció?"
             value={comment}
             onChange={(e) => onCommentChange(e.target.value)}
             disabled={disabled}

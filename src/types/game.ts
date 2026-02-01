@@ -21,7 +21,9 @@ export interface Game {
   
   // Metadata
   addedBy: string; // userId
-  playedDate: Timestamp; // Fecha en que jugaron
+  playedDate: Timestamp; // Fecha en que jugaron (deprecated - usar startedPlayingDate)
+  startedPlayingDate: Timestamp; // Fecha en que empezaron a jugar
+  finishedPlayingDate: Timestamp | null; // Fecha en que terminaron (null si no han terminado)
   createdAt: Timestamp;
   
   // Ratings - estructura plana para queries eficientes
@@ -47,6 +49,8 @@ export interface CreateGameInput {
   metacritic?: number;
   addedBy: string;
   playedDate: Date | Timestamp;
+  startedPlayingDate?: Date | Timestamp; // Opcional para compatibilidad
+  finishedPlayingDate?: Date | Timestamp | null;
   initialRating?: {
     userRole: UserRole;
     score: number;

@@ -1,17 +1,17 @@
 import { Timestamp } from 'firebase/firestore';
 import { Movie } from './movie';
 import { Series } from './series';
+import { Game } from './game';
 import { UserRole } from './user';
 
-// ─── Content type identifiers (extend when adding games, restaurants, etc.) ──
-export type ContentType = 'movie' | 'series';
-// Future: | 'game' | 'restaurant'
+// ─── Content type identifiers ──────────────────────────────────────────────
+export type ContentType = 'movie' | 'series' | 'game';
 
 // ─── Labels & icons config ─────────────────────────────────────────────────
 export const CONTENT_TYPE_CONFIG: Record<ContentType, { label: string; emoji: string; plural: string }> = {
   movie:  { label: 'Película',  emoji: '🎬', plural: 'Películas' },
   series: { label: 'Serie',     emoji: '📺', plural: 'Series' },
-  // Future additions go here
+  game:   { label: 'Juego',     emoji: '🎮', plural: 'Juegos' },
 };
 
 // ─── Normalized item ───────────────────────────────────────────────────────
@@ -20,9 +20,9 @@ export interface NormalizedStatsItem {
   type: ContentType;
   title: string;
   posterPath: string | null;
-  /** Unified date: movies → watchedDate, series → startedWatchingDate */
+  /** Unified date: movies → watchedDate, series → startedWatchingDate, games → startedPlayingDate */
   dateAdded: Timestamp;
-  /** Year string for display: movies → releaseDate, series → firstAirDate */
+  /** Year string for display: movies → releaseDate, series → firstAirDate, games → released */
   releaseYear: string;
   ratings: {
     user_1?: { score: number; comment?: string };
@@ -58,6 +58,20 @@ export function seriesToStatsItem(series: Series): NormalizedStatsItem {
     ratings: series.ratings,
     averageScore: series.averageScore,
     bothRated: series.bothRated,
+  };
+}
+
+export function gameToStatsItem(game: Game): NormalizedStatsItem {
+  return {
+    id: game.id,
+    type: 'game',
+    title: game.name,
+    posterPath: game.backgroundImage ?? null,
+    dateAdded: game.startedPlayingDate || game.playedDate,
+    releaseYear: game.released ? String(new Date(game.released).getFullYear()) : '',
+    ratings: game.ratings,
+    averageScore: game.averageScore,
+    bothRated: game.bothRated,
   };
 }
 
