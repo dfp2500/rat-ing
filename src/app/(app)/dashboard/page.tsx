@@ -204,14 +204,15 @@ export default function DashboardPage() {
         ) : (
           <div className="space-y-8">
 
-            {/* Stats Grid - Vista general */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {/* Stats Grid - Vista general - 4 columnas compactas en móvil */}
+            <div className="grid grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-4">
               <StatsCard
                 title="Total Rateadas"
                 value={stats.totalItems}
                 icon={ActivityIcon}
                 description={`${stats.totalMovies} películas, ${stats.totalSeries} series, ${stats.totalGames} juegos`}
                 variant="primary"
+                compact // ← Activar modo compacto
               />
 
               <StatsCard
@@ -220,6 +221,7 @@ export default function DashboardPage() {
                 icon={StarIcon}
                 description="Media de todas tus valoraciones"
                 variant="success"
+                compact // ← Activar modo compacto
               />
 
               <StatsCard
@@ -227,6 +229,7 @@ export default function DashboardPage() {
                 value={stats.userAverage.toFixed(1)}
                 icon={TrendingUpIcon}
                 description={`De ${stats.totalItems} rateos`}
+                compact // ← Activar modo compacto
               />
 
               <StatsCard
@@ -235,6 +238,7 @@ export default function DashboardPage() {
                 icon={ClockIcon}
                 description="Por valorar"
                 variant={stats.totalPending > 0 ? 'warning' : 'default'}
+                compact // ← Activar modo compacto
               />
             </div>
 
